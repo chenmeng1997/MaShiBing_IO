@@ -2,18 +2,17 @@ package com.bjmashibing.system.io;
 
 import org.junit.Test;
 
-import java.io.BufferedOutputStream;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.RandomAccessFile;
+import java.io.*;
 import java.nio.ByteBuffer;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
+import java.nio.charset.StandardCharsets;
 
 public class OSFileIO {
 
     static byte[] data = "123456789\n".getBytes();
-    static String path = "/root/testfileio/out.txt";
+    // static String path = "/root/testfileio/out.txt";
+    static String path = "/Users/chenmeng/data/out.txt";
 
 
     public static void main(String[] args) throws Exception {
@@ -157,6 +156,22 @@ public class OSFileIO {
         System.out.println("-------------clear......");
         System.out.println("mark: " + buffer);
 
+    }
+
+    @Test
+    void fileTest() {
+        try {
+            File file = new File(path);
+            if (!file.exists()) {
+                boolean outFile = file.createNewFile();
+            }
+            FileOutputStream fileOutputStream = new FileOutputStream(file);
+
+            fileOutputStream.write("卧槽！".getBytes(StandardCharsets.UTF_8));
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
 
