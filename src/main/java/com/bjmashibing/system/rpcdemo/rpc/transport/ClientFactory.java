@@ -141,15 +141,6 @@ public class ClientFactory{
             e.printStackTrace();
         }
 
-
-
-
-
-
-
-
-
-
     }
 
     private static void urlTS(MyContent content, CompletableFuture<Object> res) {
