@@ -22,9 +22,9 @@ public class NettyIO {
         try {
             boot.group(boss, worker)
                     .channel(NioServerSocketChannel.class)
-                    .option(ChannelOption.TCP_NODELAY,false)
+                    .option(ChannelOption.TCP_NODELAY, false)
                     .childHandler(new ChannelInitializer<NioSocketChannel>() {
-                            @Override
+                        @Override
                         protected void initChannel(NioSocketChannel ch) throws Exception {
                             ChannelPipeline p = ch.pipeline();
                             p.addLast(new MyInbound());
@@ -50,7 +50,7 @@ public class NettyIO {
     }
 }
 
-class MyInbound extends ChannelInboundHandlerAdapter{
+class MyInbound extends ChannelInboundHandlerAdapter {
 
 //    @Override
 //    public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
@@ -63,23 +63,19 @@ class MyInbound extends ChannelInboundHandlerAdapter{
         ByteBuf buf = (ByteBuf) msg;
         int size = buf.writerIndex();
         byte[] data = new byte[size];
-        buf.getBytes(0,data);
+        buf.getBytes(0, data);
         String dd = new String(data);
 
         String[] strs = dd.split("\n");
 
         for (String str : strs) {
-            System.out.print("触发的命令："+str+"...");
+            System.out.print("触发的命令：" + str + "...");
         }
 
 
         ctx.write(msg);
 
     }
-
-
-
-
 
 
     @Override

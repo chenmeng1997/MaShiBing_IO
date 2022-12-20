@@ -136,7 +136,7 @@ class ServerAcceptr implements Handler {
                 public void run() {
                     try {
 
-                        System.out.println("socket...send...to " + eventLoop.name+ " client port : " + client.socket().getPort());
+                        System.out.println("socket...send...to " + eventLoop.name + " client port : " + client.socket().getPort());
 
                         client.register(eventLoop.selector, SelectionKey.OP_READ, cHandler);
                     } catch (IOException e) {

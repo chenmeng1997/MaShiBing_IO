@@ -11,14 +11,14 @@ import java.io.ObjectOutputStream;
 public class SerDerUtil {
     static ByteArrayOutputStream out = new ByteArrayOutputStream();
 
-    public synchronized  static byte[] ser(Object msg){
+    public synchronized static byte[] ser(Object msg) {
         out.reset();
         ObjectOutputStream oout = null;
         byte[] msgBody = null;
         try {
             oout = new ObjectOutputStream(out);
             oout.writeObject(msg);
-            msgBody= out.toByteArray();
+            msgBody = out.toByteArray();
         } catch (IOException e) {
             e.printStackTrace();
         }

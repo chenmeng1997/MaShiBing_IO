@@ -44,7 +44,7 @@ public class MyNetty {
 
 
     @Test
-    public void myBytebuf(){
+    public void myBytebuf() {
 
 //        ByteBuf buf = ByteBufAllocator.DEFAULT.buffer(8, 20);
         //pool
@@ -52,39 +52,33 @@ public class MyNetty {
         ByteBuf buf = PooledByteBufAllocator.DEFAULT.heapBuffer(8, 20);
         print(buf);
 
-        buf.writeBytes(new byte[]{1,2,3,4});
+        buf.writeBytes(new byte[]{1, 2, 3, 4});
         print(buf);
-         buf.writeBytes(new byte[]{1,2,3,4});
+        buf.writeBytes(new byte[]{1, 2, 3, 4});
         print(buf);
-         buf.writeBytes(new byte[]{1,2,3,4});
+        buf.writeBytes(new byte[]{1, 2, 3, 4});
         print(buf);
-         buf.writeBytes(new byte[]{1,2,3,4});
+        buf.writeBytes(new byte[]{1, 2, 3, 4});
         print(buf);
-         buf.writeBytes(new byte[]{1,2,3,4});
+        buf.writeBytes(new byte[]{1, 2, 3, 4});
         print(buf);
-        buf.writeBytes(new byte[]{1,2,3,4});
+        buf.writeBytes(new byte[]{1, 2, 3, 4});
         print(buf);
-
-
 
 
     }
 
-    public static void print(ByteBuf buf){
-        System.out.println("buf.isReadable()    :"+buf.isReadable());
-        System.out.println("buf.readerIndex()   :"+buf.readerIndex());
-        System.out.println("buf.readableBytes() "+buf.readableBytes());
-        System.out.println("buf.isWritable()    :"+buf.isWritable());
-        System.out.println("buf.writerIndex()   :"+buf.writerIndex());
-        System.out.println("buf.writableBytes() :"+buf.writableBytes());
-        System.out.println("buf.capacity()  :"+buf.capacity());
-        System.out.println("buf.maxCapacity()   :"+buf.maxCapacity());
-        System.out.println("buf.isDirect()  :"+buf.isDirect());
+    public static void print(ByteBuf buf) {
+        System.out.println("buf.isReadable()    :" + buf.isReadable());
+        System.out.println("buf.readerIndex()   :" + buf.readerIndex());
+        System.out.println("buf.readableBytes() " + buf.readableBytes());
+        System.out.println("buf.isWritable()    :" + buf.isWritable());
+        System.out.println("buf.writerIndex()   :" + buf.writerIndex());
+        System.out.println("buf.writableBytes() :" + buf.writableBytes());
+        System.out.println("buf.capacity()  :" + buf.capacity());
+        System.out.println("buf.maxCapacity()   :" + buf.maxCapacity());
+        System.out.println("buf.isDirect()  :" + buf.isDirect());
         System.out.println("--------------");
-
-
-
-
 
 
     }
@@ -101,9 +95,9 @@ public class MyNetty {
     public void loopExecutor() throws Exception {
         //group  线程池
         NioEventLoopGroup selector = new NioEventLoopGroup(2);
-        selector.execute(()->{
+        selector.execute(() -> {
             try {
-                for (;;){
+                for (; ; ) {
                     System.out.println("hello world001");
                     Thread.sleep(1000);
                 }
@@ -111,9 +105,9 @@ public class MyNetty {
                 e.printStackTrace();
             }
         });
- selector.execute(()->{
+        selector.execute(() -> {
             try {
-                for (;;){
+                for (; ; ) {
                     System.out.println("hello world002");
                     Thread.sleep(1000);
                 }
@@ -125,7 +119,6 @@ public class MyNetty {
 
         System.in.read();
     }
-
 
 
     @Test
@@ -184,9 +177,6 @@ public class MyNetty {
     }
 
 
-
-
-
     @Test
     public void serverMode() throws Exception {
 
@@ -197,7 +187,7 @@ public class MyNetty {
         thread.register(server);
         //指不定什么时候家里来人。。响应式
         ChannelPipeline p = server.pipeline();
-        p.addLast(new MyAcceptHandler(thread,new ChannelInit()));  //accept接收客户端，并且注册到selector
+        p.addLast(new MyAcceptHandler(thread, new ChannelInit()));  //accept接收客户端，并且注册到selector
 //        p.addLast(new MyAcceptHandler(thread,new MyInHandler()));  //accept接收客户端，并且注册到selector
         ChannelFuture bind = server.bind(new InetSocketAddress("192.168.150.1", 9090));
 
@@ -229,15 +219,10 @@ public class MyNetty {
     }
 
 
-
-
-
-
-
 }
 
 
-class  MyAcceptHandler  extends ChannelInboundHandlerAdapter{
+class MyAcceptHandler extends ChannelInboundHandlerAdapter {
 
 
     private final EventLoopGroup selector;
@@ -271,7 +256,7 @@ class  MyAcceptHandler  extends ChannelInboundHandlerAdapter{
 
 //为啥要有一个inithandler，可以没有，但是MyInHandler就得设计成单例
 @ChannelHandler.Sharable
-class ChannelInit extends ChannelInboundHandlerAdapter{
+class ChannelInit extends ChannelInboundHandlerAdapter {
 
     @Override
     public void channelRegistered(ChannelHandlerContext ctx) throws Exception {
@@ -310,7 +295,7 @@ class MyInHandler extends ChannelInboundHandlerAdapter {
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
         ByteBuf buf = (ByteBuf) msg;
 //        CharSequence str = buf.readCharSequence(buf.readableBytes(), CharsetUtil.UTF_8);
-        CharSequence str = buf.getCharSequence(0,buf.readableBytes(), CharsetUtil.UTF_8);
+        CharSequence str = buf.getCharSequence(0, buf.readableBytes(), CharsetUtil.UTF_8);
         System.out.println(str);
         ctx.writeAndFlush(buf);
     }

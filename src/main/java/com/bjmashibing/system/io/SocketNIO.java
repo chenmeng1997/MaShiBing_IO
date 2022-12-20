@@ -1,7 +1,6 @@
 package com.bjmashibing.system.io;
 
 import java.net.InetSocketAddress;
-import java.net.StandardSocketOptions;
 import java.nio.ByteBuffer;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
@@ -27,8 +26,6 @@ public class SocketNIO {
 //        StandardSocketOptions.SO_REUSEADDR
 
 
-
-
         while (true) {
             //接受客户端的连接
             Thread.sleep(1000);
@@ -38,7 +35,7 @@ public class SocketNIO {
             //NONBLOCKING 就是代码能往下走了，只不过有不同的情况
 
             if (client == null) {
-             //   System.out.println("null.....");
+                System.out.println("null.....");
             } else {
                 client.configureBlocking(false); //重点  socket（服务端的listen socket<连接请求三次握手后，往我这里扔，我去通过accept 得到  连接的socket>，连接socket<连接后的数据读写使用的> ）
                 int port = client.socket().getPort();
@@ -60,10 +57,9 @@ public class SocketNIO {
                     System.out.println(c.socket().getPort() + " : " + b);
                     buffer.clear();
                 }
-
-
             }
         }
+
     }
 
 }

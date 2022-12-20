@@ -4,27 +4,29 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.*;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Set;
 
-public class SocketMultiplexingSingleThreadv1 {
+public class SocketMultiplexingSingleThreadV1 {
 
-    //马老师的坦克 一 二期
-    private ServerSocketChannel server = null;
-    private Selector selector = null;   //linux 多路复用器（select poll    epoll kqueue） nginx  event{}
+    // linux 多路复用器（select poll  epoll kqueue） nginx  event{}
+    private Selector selector = null;
     int port = 9090;
 
+    /**
+     * 初始化Service
+     */
     public void initServer() {
         try {
-            server = ServerSocketChannel.open();
+            // 马老师的坦克 一 二期
+            ServerSocketChannel server = ServerSocketChannel.open();
+            // 配置阻塞
             server.configureBlocking(false);
             server.bind(new InetSocketAddress(port));
 
-
-            //如果在epoll模型下，open--》  epoll_create -> fd3
-            selector = Selector.open();  //  select  poll  *epoll  优先选择：epoll  但是可以 -D修正
-
+            // 如果在epoll模型下，open--》  epoll_create -> fd3
+            // select  poll  *epoll  优先选择：epoll  但是可以 -D修正
+            selector = Selector.open();
             //server 约等于 listen状态的 fd4
             /*
             register
@@ -33,21 +35,20 @@ public class SocketMultiplexingSingleThreadv1 {
             epoll：  epoll_ctl(fd3,ADD,fd4,EPOLLIN
              */
             server.register(selector, SelectionKey.OP_ACCEPT);
-
-
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
     public void start() {
-        initServer();
+        // 初始化Service
+        this.initServer();
         System.out.println("服务器启动了。。。。。");
         try {
             while (true) {  //死循环
 
                 Set<SelectionKey> keys = selector.keys();
-                System.out.println(keys.size()+"   size");
+                System.out.println(keys.size() + "   size");
 
 
                 //1,调用多路复用器(select,poll  or  epoll  (epoll_wait))
@@ -62,16 +63,17 @@ public class SocketMultiplexingSingleThreadv1 {
                 其实再触碰到selector.select()调用的时候触发了epoll_ctl的调用
 
                  */
-                while (selector.select() > 0) {
-                    Set<SelectionKey> selectionKeys = selector.selectedKeys();  //返回的有状态的fd集合
+                while (selector.select(500) > 0) {
+                    //返回的有状态的fd集合
+                    Set<SelectionKey> selectionKeys = selector.selectedKeys();
                     Iterator<SelectionKey> iter = selectionKeys.iterator();
                     //so，管你啥多路复用器，你呀只能给我状态，我还得一个一个的去处理他们的R/W。同步好辛苦！！！！！！！！
                     //  NIO  自己对着每一个fd调用系统调用，浪费资源，那么你看，这里是不是调用了一次select方法，知道具体的那些可以R/W了？
-                    //幕兰，是不是很省力？
                     //我前边可以强调过，socket：  listen   通信 R/W
                     while (iter.hasNext()) {
                         SelectionKey key = iter.next();
-                        iter.remove(); //set  不移除会重复循环处理
+                        // 不移除会重复循环处理
+                        iter.remove();
                         if (key.isAcceptable()) {
                             //看代码的时候，这里是重点，如果要去接受一个新的连接
                             //语义上，accept接受连接且返回新连接的FD对吧？
@@ -146,7 +148,7 @@ public class SocketMultiplexingSingleThreadv1 {
     }
 
     public static void main(String[] args) {
-        SocketMultiplexingSingleThreadv1 service = new SocketMultiplexingSingleThreadv1();
+        SocketMultiplexingSingleThreadV1 service = new SocketMultiplexingSingleThreadV1();
         service.start();
     }
 }

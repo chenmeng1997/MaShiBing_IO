@@ -47,7 +47,7 @@ public class SocketMultiplexingSingleThreadv1_1 {
 //                            key.cancel();
                             readHandler(key);  //只处理了  read  并注册 关心这个key的write事件
 
-                        } else if(key.isWritable()){  //我之前没讲过写的事件！！！！！
+                        } else if (key.isWritable()) {  //我之前没讲过写的事件！！！！！
                             //写事件<--  send-queue  只要是空的，就一定会给你返回可以写的事件，就会回调我们的写方法
                             //你真的要明白：你想什么时候写？不是依赖send-queue是不是有空间（多路复用器能不能写是参考send-queue有没有空间）
                             //1，你准备好要写什么了，这是第一步
@@ -67,30 +67,31 @@ public class SocketMultiplexingSingleThreadv1_1 {
 
     private void writeHandler(SelectionKey key) {
 
-            System.out.println("write handler...");
-            SocketChannel client = (SocketChannel) key.channel();
-            ByteBuffer buffer = (ByteBuffer) key.attachment();
-            buffer.flip();
-            while (buffer.hasRemaining()) {
-                try {
-
-                    client.write(buffer);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
+        System.out.println("write handler...");
+        SocketChannel client = (SocketChannel) key.channel();
+        ByteBuffer buffer = (ByteBuffer) key.attachment();
+        // 翻转
+        buffer.flip();
+        // 有剩余的
+        while (buffer.hasRemaining()) {
             try {
-                Thread.sleep(2000);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-            buffer.clear();
-            key.cancel();
-            try {
-                client.close();
+                client.write(buffer);
             } catch (IOException e) {
                 e.printStackTrace();
             }
+        }
+        try {
+            Thread.sleep(2000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        buffer.clear();
+        key.cancel();
+        try {
+            client.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
 
 
     }
@@ -113,27 +114,27 @@ public class SocketMultiplexingSingleThreadv1_1 {
 
     public void readHandler(SelectionKey key) {
 
-            System.out.println("read handler.....");
-            SocketChannel client = (SocketChannel) key.channel();
-            ByteBuffer buffer = (ByteBuffer) key.attachment();
-            buffer.clear();
-            int read = 0;
-            try {
-                while (true) {
-                    read = client.read(buffer);
-                    if (read > 0) {
-                        client.register(key.selector(),SelectionKey.OP_WRITE,buffer);
-                        //关心  OP_WRITE 其实就是关系send-queue是不是有空间
-                    } else if (read == 0) {
-                        break;
-                    } else {
-                        client.close();
-                        break;
-                    }
+        System.out.println("read handler.....");
+        SocketChannel client = (SocketChannel) key.channel();
+        ByteBuffer buffer = (ByteBuffer) key.attachment();
+        buffer.clear();
+        int read = 0;
+        try {
+            while (true) {
+                read = client.read(buffer);
+                if (read > 0) {
+                    client.register(key.selector(), SelectionKey.OP_WRITE, buffer);
+                    //关心  OP_WRITE 其实就是关系send-queue是不是有空间
+                } else if (read == 0) {
+                    break;
+                } else {
+                    client.close();
+                    break;
                 }
-            } catch (IOException e) {
-                e.printStackTrace();
             }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
 
 
     }

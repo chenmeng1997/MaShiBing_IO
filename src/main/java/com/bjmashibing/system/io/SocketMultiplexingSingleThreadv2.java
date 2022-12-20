@@ -47,7 +47,7 @@ public class SocketMultiplexingSingleThreadv2 {
 
                             readHandler(key);//还是阻塞的嘛？ 即便以抛出了线程去读取，但是在时差里，这个key的read事件会被重复触发
 
-                        } else if(key.isWritable()){  //我之前没讲过写的事件！！！！！
+                        } else if (key.isWritable()) {  //我之前没讲过写的事件！！！！！
                             //写事件<--  send-queue  只要是空的，就一定会给你返回可以写的事件，就会回调我们的写方法
                             //你真的要明白：什么时候写？不是依赖send-queue是不是有空间
                             //1，你准备好要写什么了，这是第一步
@@ -56,7 +56,6 @@ public class SocketMultiplexingSingleThreadv2 {
                             //4，如果一开始就注册了write的事件，进入死循环，一直调起！！！
 //                            key.cancel();
                             key.interestOps(key.interestOps() & ~SelectionKey.OP_WRITE);
-
 
 
                             writeHandler(key);
@@ -70,7 +69,7 @@ public class SocketMultiplexingSingleThreadv2 {
     }
 
     private void writeHandler(SelectionKey key) {
-        new Thread(()->{
+        new Thread(() -> {
             System.out.println("write handler...");
             SocketChannel client = (SocketChannel) key.channel();
             ByteBuffer buffer = (ByteBuffer) key.attachment();
@@ -113,14 +112,13 @@ public class SocketMultiplexingSingleThreadv2 {
             System.out.println("-------------------------------------------");
             System.out.println("新客户端：" + client.getRemoteAddress());
             System.out.println("-------------------------------------------");
-
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
     public void readHandler(SelectionKey key) {
-        new Thread(()->{
+        new Thread(() -> {
             System.out.println("read handler.....");
             SocketChannel client = (SocketChannel) key.channel();
             ByteBuffer buffer = (ByteBuffer) key.attachment();
@@ -129,13 +127,12 @@ public class SocketMultiplexingSingleThreadv2 {
             try {
                 while (true) {
                     read = client.read(buffer);
-                    System.out.println(Thread.currentThread().getName()+ " " + read);
+                    System.out.println(Thread.currentThread().getName() + " " + read);
                     if (read > 0) {
-                        key.interestOps(  SelectionKey.OP_READ);
+                        key.interestOps(SelectionKey.OP_READ);
 
-                        client.register(key.selector(),SelectionKey.OP_WRITE,buffer);
+                        client.register(key.selector(), SelectionKey.OP_WRITE, buffer);
                     } else if (read == 0) {
-
                         break;
                     } else {
                         client.close();

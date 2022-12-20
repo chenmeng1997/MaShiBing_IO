@@ -47,8 +47,6 @@ public class NettyClient {
             client.writeAndFlush(byteBuf).sync();
 
 
-
-
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
