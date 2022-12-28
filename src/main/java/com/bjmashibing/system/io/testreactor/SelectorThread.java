@@ -14,12 +14,10 @@ import java.util.concurrent.LinkedBlockingQueue;
 public class SelectorThread extends ThreadLocal<LinkedBlockingQueue<Channel>> implements Runnable {
     // 每线程对应一个selector，
     // 多线程情况下，该主机，该程序的并发客户端被分配到多个selector上
-    //注意，每个客户端，只绑定到其中一个selector
-    //其实不会有交互问题
-
-
+    // 注意，每个客户端，只绑定到其中一个selector
+    // 其实不会有交互问题
     Selector selector = null;
-    //    LinkedBlockingQueue<Channel> lbq = new LinkedBlockingQueue<>();
+    // LinkedBlockingQueue<Channel> lbq = new LinkedBlockingQueue<>();
     LinkedBlockingQueue<Channel> lbq = get();  //lbq  在接口或者类中是固定使用方式逻辑写死了。你需要是lbq每个线程持有自己的独立对象
 
     SelectorThreadGroup stg;
@@ -31,16 +29,12 @@ public class SelectorThread extends ThreadLocal<LinkedBlockingQueue<Channel>> im
 
     SelectorThread(SelectorThreadGroup stg) {
         try {
-
-
             this.stg = stg;
             selector = Selector.open();
-
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
-
 
     @Override
     public void run() {
@@ -58,20 +52,19 @@ public class SelectorThread extends ThreadLocal<LinkedBlockingQueue<Channel>> im
                 if (nums > 0) {
                     Set<SelectionKey> keys = selector.selectedKeys();
                     Iterator<SelectionKey> iter = keys.iterator();
-                    while (iter.hasNext()) {  //线程处理的过程
+                    while (iter.hasNext()) {
+                        // 线程处理的过程
                         SelectionKey key = iter.next();
                         iter.remove();
-                        if (key.isAcceptable()) {  //复杂,接受客户端的过程（接收之后，要注册，多线程下，新的客户端，注册到那里呢？）
+                        // 复杂,接受客户端的过程（接收之后，要注册，多线程下，新的客户端，注册到那里呢？）
+                        if (key.isAcceptable()) {
                             acceptHandler(key);
                         } else if (key.isReadable()) {
                             readHander(key);
                         } else if (key.isWritable()) {
 
                         }
-
-
                     }
-
                 }
                 //3,处理一些task :  listen  client
                 if (!lbq.isEmpty()) {   //队列是个啥东西啊？ 堆里的对象，线程的栈是独立，堆是共享的
@@ -86,21 +79,11 @@ public class SelectorThread extends ThreadLocal<LinkedBlockingQueue<Channel>> im
                         ByteBuffer buffer = ByteBuffer.allocateDirect(4096);
                         client.register(selector, SelectionKey.OP_READ, buffer);
                         System.out.println(Thread.currentThread().getName() + " register client: " + client.getRemoteAddress());
-
                     }
                 }
-
-
-            } catch (IOException e) {
-                e.printStackTrace();
-            } catch (InterruptedException e) {
+            } catch (IOException | InterruptedException e) {
                 e.printStackTrace();
             }
-//            catch (InterruptedException e) {
-//                e.printStackTrace();
-//            }
-
-
         }
 
     }
@@ -114,14 +97,15 @@ public class SelectorThread extends ThreadLocal<LinkedBlockingQueue<Channel>> im
             try {
                 int num = client.read(buffer);
                 if (num > 0) {
-                    buffer.flip();  //将读到的内容翻转，然后直接写出
+                    // 将读到的内容翻转，然后直接写出
+                    buffer.flip();
                     while (buffer.hasRemaining()) {
                         client.write(buffer);
                     }
                     buffer.clear();
                 } else if (num == 0) {
                     break;
-                } else if (num < 0) {
+                } else {
                     //客户端断开了
                     System.out.println("client: " + client.getRemoteAddress() + "closed......");
                     key.cancel();
@@ -144,16 +128,15 @@ public class SelectorThread extends ThreadLocal<LinkedBlockingQueue<Channel>> im
             //choose a selector  and  register!!
 
             stg.nextSelectorV3(client);
-//            stg.nextSelectorV2(client);
+            // stg.nextSelectorV2(client);
 
         } catch (IOException e) {
             e.printStackTrace();
         }
-
-
     }
 
     public void setWorker(SelectorThreadGroup stgWorker) {
         this.stg = stgWorker;
     }
+
 }

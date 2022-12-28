@@ -4,6 +4,7 @@ import org.junit.Test;
 
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.IOException;
 
 /**
  * @author 陈萌
@@ -17,7 +18,11 @@ public class TestIO {
 
         try {
             FileOutputStream fileOutputStream = new FileOutputStream("");
-            fileOutputStream.write();
+            try {
+                fileOutputStream.write(new byte[1024]);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         } catch (FileNotFoundException e) {
             e.printStackTrace();
         }
