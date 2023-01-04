@@ -27,12 +27,12 @@ public class SocketMultiplexingThreadsV2 {
 
 class ServerBootStrap {
     private EventLoopGroup group;
-    private EventLoopGroup chiledGroup;
-    ServerAcceptr sAcceptr;
+    private EventLoopGroup chilledGroup;
+    ServerAcceptor sAcceptor;
 
     public ServerBootStrap group(EventLoopGroup boss, EventLoopGroup worker) {
         group = boss;
-        chiledGroup = worker;
+        chilledGroup = worker;
         return this;
     }
 
@@ -41,32 +41,25 @@ class ServerBootStrap {
         ServerSocketChannel server = ServerSocketChannel.open();
         server.configureBlocking(false);
         server.bind(new InetSocketAddress(port));
-        sAcceptr = new ServerAcceptr(chiledGroup, server);
-        EventLoop eventloop = group.chosser();
+        sAcceptor = new ServerAcceptor(chilledGroup, server);
+        EventLoop eventloop = group.chooser();
         //把启动server，bind端口的操作变成task，推送到eventloop中执行。
-        eventloop.execute(new Runnable() {
-            @Override
-            public void run() {
-                eventloop.execute(new Runnable() {
-                    @Override
-                    public void run() {
-                        try {
-                            eventloop.name = Thread.currentThread() + eventloop.name;
-                            System.out.println("bind...server...to " + eventloop.name);
-                            server.register(eventloop.selector, SelectionKey.OP_ACCEPT, sAcceptr);
-                        } catch (ClosedChannelException e) {
-                            e.printStackTrace();
-                        }
+        eventloop.execute(() ->
+                eventloop.execute(() -> {
+                    try {
+                        eventloop.name = Thread.currentThread() + eventloop.name;
+                        System.out.println("bind...server...to " + eventloop.name);
+                        server.register(eventloop.selector, SelectionKey.OP_ACCEPT, sAcceptor);
+                    } catch (ClosedChannelException e) {
+                        e.printStackTrace();
                     }
-                });
-            }
-        });
+                }));
     }
 }
 
 class EventLoopGroup {
     AtomicInteger cid = new AtomicInteger(0);
-    EventLoop[] childrens = null;
+    EventLoop[] childrens;
 
     EventLoopGroup(int nThreads) {
         childrens = new EventLoop[nThreads];
@@ -75,7 +68,7 @@ class EventLoopGroup {
         }
     }
 
-    public EventLoop chosser() {
+    public EventLoop chooser() {
         return childrens[cid.getAndIncrement() % childrens.length];
     }
 }
@@ -115,33 +108,28 @@ class ClientReader implements Handler {
     }
 }
 
-class ServerAcceptr implements Handler {
+class ServerAcceptor implements Handler {
     ServerSocketChannel key;
     EventLoopGroup cGroup;
 
-    ServerAcceptr(EventLoopGroup cGroup, ServerSocketChannel server) {
+    ServerAcceptor(EventLoopGroup cGroup, ServerSocketChannel server) {
         this.key = server;
         this.cGroup = cGroup;
     }
 
     public void doRead() {
         try {
-            final EventLoop eventLoop = cGroup.chosser();
+            final EventLoop eventLoop = cGroup.chooser();
             final SocketChannel client = key.accept();
             client.configureBlocking(false);
             client.setOption(StandardSocketOptions.TCP_NODELAY, true);
             final ClientReader cHandler = new ClientReader(client);
-            eventLoop.execute(new Runnable() {
-                @Override
-                public void run() {
-                    try {
-
-                        System.out.println("socket...send...to " + eventLoop.name + " client port : " + client.socket().getPort());
-
-                        client.register(eventLoop.selector, SelectionKey.OP_READ, cHandler);
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
+            eventLoop.execute(() -> {
+                try {
+                    System.out.println("socket...send...to " + eventLoop.name + " client port : " + client.socket().getPort());
+                    client.register(eventLoop.selector, SelectionKey.OP_READ, cHandler);
+                } catch (IOException e) {
+                    e.printStackTrace();
                 }
             });
         } catch (IOException e) {
@@ -186,14 +174,14 @@ class EventLoop implements Executor {
                     SelectionKey key = iter.next();
                     iter.remove();
                     Handler handler = (Handler) key.attachment();
-                    if (handler instanceof ServerAcceptr) {
+                    if (handler instanceof ServerAcceptor) {
                     } else if (handler instanceof ClientReader) {
                     }
                     handler.doRead();
                 }
             }
             //run events
-            runrTask();
+            runTask();
         }
     }
 
@@ -208,23 +196,18 @@ class EventLoop implements Executor {
         }
         if (!inEventLoop() && STAT.incrementAndGet() == STARTED) {
 
-            new Thread(new Runnable() {
-                @Override
-                public void run() {
-                    try {
-                        thread = Thread.currentThread();
-                        EventLoop.this.run();
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
+            new Thread(() -> {
+                try {
+                    thread = Thread.currentThread();
+                    EventLoop.this.run();
+                } catch (InterruptedException | IOException e) {
+                    e.printStackTrace();
                 }
             }).start();
         }
     }
 
-    public void runrTask() throws InterruptedException {
+    public void runTask() throws InterruptedException {
         for (int i = 0; i < 5; i++) {
             Runnable task = (Runnable) events.poll(10, TimeUnit.MILLISECONDS);
             if (task != null) {

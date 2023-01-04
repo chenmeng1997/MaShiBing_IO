@@ -16,9 +16,9 @@ public class SocketClient {
 
         try {
             // 183.159.127.146
-//            Socket client = new Socket("192.168.150.11", 9090);
             Socket client = new Socket("127.0.0.1", 9090);
             client.setSendBufferSize(20);
+            // 不延迟
             client.setTcpNoDelay(true);
             OutputStream out = client.getOutputStream();
 

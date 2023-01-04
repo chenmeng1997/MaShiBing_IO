@@ -10,7 +10,7 @@ import java.nio.channels.SocketChannel;
 import java.util.Iterator;
 import java.util.Set;
 
-public class SocketMultiplexingSingleThreadv1_1 {
+public class SocketMultiplexingSingleThreadV1_1 {
 
     private ServerSocketChannel server = null;
     private Selector selector = null;   //linux 多路复用器（select poll epoll） nginx  event{}
@@ -140,7 +140,7 @@ public class SocketMultiplexingSingleThreadv1_1 {
     }
 
     public static void main(String[] args) {
-        SocketMultiplexingSingleThreadv1_1 service = new SocketMultiplexingSingleThreadv1_1();
+        SocketMultiplexingSingleThreadV1_1 service = new SocketMultiplexingSingleThreadV1_1();
         service.start();
     }
 }

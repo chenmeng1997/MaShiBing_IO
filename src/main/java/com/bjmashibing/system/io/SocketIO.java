@@ -16,20 +16,21 @@ public class SocketIO {
         while (true) {
             //阻塞1
             Socket client = server.accept();
+            String hostAddress = client.getLocalAddress().getHostAddress();
             System.out.println("step2:client\t" + client.getPort());
+            System.out.println("hostAddress:" + hostAddress);
 
             new Thread(() -> {
                 InputStream in;
                 try {
                     in = client.getInputStream();
                     BufferedReader reader = new BufferedReader(new InputStreamReader(in));
-
                     OutputStream output = client.getOutputStream();
                     while (true) {
-                        //阻塞2
-                        String dataline = reader.readLine();
-                        if (null != dataline) {
-                            System.out.println("dataline:"+dataline);
+                        //阻塞2 阅读一行文本
+                        String readLine = reader.readLine();
+                        if (null != readLine) {
+                            System.out.println("dataline:" + readLine);
                             output.write("客户端回复 卧槽！".getBytes(StandardCharsets.UTF_8));
                         } else {
                             client.close();
@@ -41,9 +42,7 @@ public class SocketIO {
                     e.printStackTrace();
                 }
             }).start();
-
         }
     }
-
 
 }

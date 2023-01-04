@@ -60,7 +60,7 @@ public class SelectorThread extends ThreadLocal<LinkedBlockingQueue<Channel>> im
                         if (key.isAcceptable()) {
                             acceptHandler(key);
                         } else if (key.isReadable()) {
-                            readHander(key);
+                            readHandler(key);
                         } else if (key.isWritable()) {
 
                         }
@@ -88,7 +88,7 @@ public class SelectorThread extends ThreadLocal<LinkedBlockingQueue<Channel>> im
 
     }
 
-    private void readHander(SelectionKey key) {
+    private void readHandler(SelectionKey key) {
         System.out.println(Thread.currentThread().getName() + " read......");
         ByteBuffer buffer = (ByteBuffer) key.attachment();
         SocketChannel client = (SocketChannel) key.channel();

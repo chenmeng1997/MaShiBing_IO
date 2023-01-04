@@ -22,7 +22,6 @@ import java.util.Random;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -82,20 +81,15 @@ public class MyRPCTest {
             e.printStackTrace();
         }
 
-
     }
-
 
     //模拟comsumer端
     @Test
     public void get() {
 
-        new Thread(() -> {
-            startServer();
-        }).start();
+        new Thread(this::startServer).start();
 
         System.out.println("server started......");
-
 
         AtomicInteger num = new AtomicInteger(0);
         int size = 50;
@@ -112,7 +106,6 @@ public class MyRPCTest {
         for (Thread thread : threads) {
             thread.start();
         }
-
 
         try {
             System.in.read();
@@ -134,72 +127,58 @@ public class MyRPCTest {
         Class<?>[] methodInfo = {interfaceInfo};
 
 
-        return (T) Proxy.newProxyInstance(loader, methodInfo, new InvocationHandler() {
-            @Override
-            public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
-                //如何设计我们的consumer对于provider的调用过程
+        return (T) Proxy.newProxyInstance(loader, methodInfo, (proxy, method, args) -> {
+            //如何设计我们的consumer对于provider的调用过程
 
-                //1，调用 服务，方法，参数  ==》 封装成message  [content]
-                String name = interfaceInfo.getName();
-                String methodName = method.getName();
-                Class<?>[] parameterTypes = method.getParameterTypes();
-                MyContent content = new MyContent();
+            //1，调用 服务，方法，参数  ==》 封装成message  [content]
+            String name = interfaceInfo.getName();
+            String methodName = method.getName();
+            Class<?>[] parameterTypes = method.getParameterTypes();
+            MyContent content = new MyContent();
 
-                content.setArgs(args);
-                content.setName(name);
-                content.setMethodName(methodName);
-                content.setParameterTypes(parameterTypes);
+            content.setArgs(args);
+            content.setName(name);
+            content.setMethodName(methodName);
+            content.setParameterTypes(parameterTypes);
 
-                ByteArrayOutputStream out = new ByteArrayOutputStream();
-                ObjectOutputStream oout = new ObjectOutputStream(out);
-                oout.writeObject(content);
-                byte[] msgBody = out.toByteArray();
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            ObjectOutputStream oout = new ObjectOutputStream(out);
+            oout.writeObject(content);
+            byte[] msgBody = out.toByteArray();
 
-                //2，requestID+message  ，本地要缓存
-                //协议：【header<>】【msgBody】
-                Myheader header = createHeader(msgBody);
+            //2，requestID+message  ，本地要缓存
+            //协议：【header<>】【msgBody】
+            Myheader header = createHeader(msgBody);
 
-                out.reset();
-                oout = new ObjectOutputStream(out);
-                oout.writeObject(header);
-                //解决数据decode问题
-                //TODO：Server：： dispatcher  Executor
-                byte[] msgHeader = out.toByteArray();
-                System.out.println("old:::" + msgHeader.length);
-
-
+            out.reset();
+            oout = new ObjectOutputStream(out);
+            oout.writeObject(header);
+            //解决数据decode问题
+            //TODO：Server：： dispatcher  Executor
+            byte[] msgHeader = out.toByteArray();
+            System.out.println("old:::" + msgHeader.length);
 //                System.out.println("msgHeader :"+msgHeader.length);
-
-
-                //3，连接池：：取得连接
-                ClientFactory factory = ClientFactory.getFactory();
-                NioSocketChannel clientChannel = factory.getClient(new InetSocketAddress("localhost", 9090));
-                //获取连接过程中： 开始-创建，过程-直接取
-
-                //4，发送--> 走IO  out -->走Netty（event 驱动）
-
-                ByteBuf byteBuf = PooledByteBufAllocator.DEFAULT.directBuffer(msgHeader.length + msgBody.length);
+            //3，连接池：：取得连接
+            ClientFactory factory = ClientFactory.getFactory();
+            NioSocketChannel clientChannel = factory.getClient(new InetSocketAddress("localhost", 9090));
+            //获取连接过程中： 开始-创建，过程-直接取
+            //4，发送--> 走IO  out -->走Netty（event 驱动）
+            ByteBuf byteBuf = PooledByteBufAllocator.DEFAULT.directBuffer(msgHeader.length + msgBody.length);
 
 //                CountDownLatch countDownLatch = new CountDownLatch(1);
-                long id = header.getRequestID();
-                CompletableFuture<String> res = new CompletableFuture<>();
-                ResponseMappingCallback.addCallBack(id, res);
-                byteBuf.writeBytes(msgHeader);
-                byteBuf.writeBytes(msgBody);
-                ChannelFuture channelFuture = clientChannel.writeAndFlush(byteBuf);
-                channelFuture.sync();  //io是双向的，你看似有个sync，她仅代表out
-
+            long id = header.getRequestID();
+            CompletableFuture<String> res = new CompletableFuture<>();
+            ResponseMappingCallback.addCallBack(id, res);
+            byteBuf.writeBytes(msgHeader);
+            byteBuf.writeBytes(msgBody);
+            ChannelFuture channelFuture = clientChannel.writeAndFlush(byteBuf);
+            channelFuture.sync();  //io是双向的，你看似有个sync，她仅代表out
 //                countDownLatch.await();
-
-                //5，？，如果从IO ，未来回来了，怎么将代码执行到这里
-                //（睡眠/回调，如何让线程停下来？你还能让他继续。。。）
-
-
-                return res.get();//阻塞的
-            }
+            //5，？，如果从IO ，未来回来了，怎么将代码执行到这里
+            //（睡眠/回调，如何让线程停下来？你还能让他继续。。。）
+            return res.get();//阻塞的
         });
     }
-
 
     public static Myheader createHeader(byte[] msg) {
         Myheader header = new Myheader();
@@ -212,7 +191,6 @@ public class MyRPCTest {
         header.setRequestID(requestID);
         return header;
     }
-
 }
 
 class Dispatcher {
@@ -280,15 +258,10 @@ class ServerDecode extends ByteToMessageDecoder {
                     MyContent content = (MyContent) doin.readObject();
                     out.add(new Packmsg(header, content));
                 }
-
-
             } else {
                 break;
             }
-
-
         }
-
     }
 }
 
@@ -338,17 +311,10 @@ class ServerRequestHandler extends ChannelInboundHandlerAdapter {
                 Class<?> clazz = c.getClass();
                 Object res = null;
                 try {
-
-
                     Method m = clazz.getMethod(method, requestPkg.content.parameterTypes);
                     res = m.invoke(c, requestPkg.content.getArgs());
 
-
-                } catch (NoSuchMethodException e) {
-                    e.printStackTrace();
-                } catch (IllegalAccessException e) {
-                    e.printStackTrace();
-                } catch (InvocationTargetException e) {
+                } catch (NoSuchMethodException | InvocationTargetException | IllegalAccessException e) {
                     e.printStackTrace();
                 }
 
@@ -371,8 +337,6 @@ class ServerRequestHandler extends ChannelInboundHandlerAdapter {
                 ctx.writeAndFlush(byteBuf);
             }
         });
-
-
     }
 
 }
@@ -445,10 +409,7 @@ class ClientFactory {
             e.printStackTrace();
         }
         return null;
-
-
     }
-
 
 }
 
@@ -462,7 +423,6 @@ class ClientPool {
         for (int i = 0; i < size; i++) {
             lock[i] = new Object();
         }
-
     }
 }
 

@@ -13,12 +13,15 @@ import java.net.Socket;
  * @create: 2020-05-17 05:34
  * BIO  多线程的方式
  */
-public class SocketIOPropertites {
+public class SocketIOProperties {
 
 
     //server socket listen property:
+    // 接收缓冲区
     private static final int RECEIVE_BUFFER = 10;
+    // 超时
     private static final int SO_TIMEOUT = 0;
+    // 重用
     private static final boolean REUSE_ADDR = false;
     private static final int BACK_LOG = 2;
     //client socket listen property on server endpoint:
@@ -82,9 +85,7 @@ public class SocketIOPropertites {
                                 BufferedReader reader = new BufferedReader(new InputStreamReader(in));
                                 char[] data = new char[1024];
                                 while (true) {
-
                                     int num = reader.read(data);
-
                                     if (num > 0) {
                                         System.out.println("client read some data is :" + num + " val :" + new String(data, 0, num));
                                     } else if (num == 0) {
@@ -101,10 +102,8 @@ public class SocketIOPropertites {
                             } catch (IOException e) {
                                 e.printStackTrace();
                             }
-
                         }
                 ).start();
-
             }
         } catch (IOException e) {
             e.printStackTrace();
@@ -115,6 +114,5 @@ public class SocketIOPropertites {
                 e.printStackTrace();
             }
         }
-
     }
 }

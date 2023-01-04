@@ -2,17 +2,17 @@ package com.bjmashibing.system.io.netty;
 
 import io.netty.bootstrap.Bootstrap;
 import io.netty.bootstrap.ServerBootstrap;
-import io.netty.buffer.*;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.PooledByteBufAllocator;
+import io.netty.buffer.Unpooled;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
-import io.netty.channel.socket.ServerSocketChannel;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.util.CharsetUtil;
 import org.junit.Test;
 
-import java.io.IOException;
 import java.net.InetSocketAddress;
 
 /**
@@ -21,34 +21,13 @@ import java.net.InetSocketAddress;
  */
 public class MyNetty {
 
-    /*
-
-    <dependency>
-      <groupId>junit</groupId>
-      <artifactId>junit</artifactId>
-      <version>4.11</version>
-    </dependency>
-
-
-    今天主要是netty的初级使用，如果对初级知识过敏的小伙伴可以
-    先学点高级的 -。-
-    非常初级。。。。
-     */
-
-    /*
-    目的：前边 NIO 逻辑
-    恶心的版本---依托着前面的思维逻辑
-    channel  bytebuffer  selector
-    bytebuffer   bytebuf【pool】
-     */
-
-
     @Test
-    public void myBytebuf() {
+    public void myBytebuffer() {
 
-//        ByteBuf buf = ByteBufAllocator.DEFAULT.buffer(8, 20);
-        //pool
-//        ByteBuf buf = UnpooledByteBufAllocator.DEFAULT.heapBuffer(8, 20);
+        // ByteBuf buf = ByteBufAllocator.DEFAULT.buffer(8, 20);
+
+        // pool 池化
+        // ByteBuf buf = UnpooledByteBufAllocator.DEFAULT.heapBuffer(8, 20);
         ByteBuf buf = PooledByteBufAllocator.DEFAULT.heapBuffer(8, 20);
         print(buf);
 
@@ -64,8 +43,6 @@ public class MyNetty {
         print(buf);
         buf.writeBytes(new byte[]{1, 2, 3, 4});
         print(buf);
-
-
     }
 
     public static void print(ByteBuf buf) {
@@ -79,21 +56,18 @@ public class MyNetty {
         System.out.println("buf.maxCapacity()   :" + buf.maxCapacity());
         System.out.println("buf.isDirect()  :" + buf.isDirect());
         System.out.println("--------------");
-
-
     }
 
-
-    /*
-    客户端
-    连接别人
-    1，主动发送数据
-    2，别人什么时候给我发？  event  selector
+    /**
+     * 客户端
+     * 1，主动发送数据
+     * 2，别人什么时候给我发？  event  selector
+     *
+     * @throws Exception 异常
      */
-
     @Test
     public void loopExecutor() throws Exception {
-        //group  线程池
+        // group  线程池
         NioEventLoopGroup selector = new NioEventLoopGroup(2);
         selector.execute(() -> {
             try {
@@ -115,8 +89,6 @@ public class MyNetty {
                 e.printStackTrace();
             }
         });
-
-
         System.in.read();
     }
 
@@ -183,19 +155,14 @@ public class MyNetty {
         NioEventLoopGroup thread = new NioEventLoopGroup(1);
         NioServerSocketChannel server = new NioServerSocketChannel();
 
-
         thread.register(server);
-        //指不定什么时候家里来人。。响应式
+        //指不定什么时候家里来人。。响应式 管道
         ChannelPipeline p = server.pipeline();
         p.addLast(new MyAcceptHandler(thread, new ChannelInit()));  //accept接收客户端，并且注册到selector
 //        p.addLast(new MyAcceptHandler(thread,new MyInHandler()));  //accept接收客户端，并且注册到selector
         ChannelFuture bind = server.bind(new InetSocketAddress("192.168.150.1", 9090));
-
-
         bind.sync().channel().closeFuture().sync();
         System.out.println("server close....");
-
-
     }
 
     @Test
@@ -215,22 +182,18 @@ public class MyNetty {
                 .bind(new InetSocketAddress("192.168.150.1", 9090));
 
         bind.sync().channel().closeFuture().sync();
-
     }
-
-
 }
 
 
 class MyAcceptHandler extends ChannelInboundHandlerAdapter {
-
 
     private final EventLoopGroup selector;
     private final ChannelHandler handler;
 
     public MyAcceptHandler(EventLoopGroup thread, ChannelHandler myInHandler) {
         this.selector = thread;
-        this.handler = myInHandler;  //ChannelInit
+        this.handler = myInHandler;  // ChannelInit
     }
 
     @Override
@@ -246,11 +209,8 @@ class MyAcceptHandler extends ChannelInboundHandlerAdapter {
         //2，响应式的  handler
         ChannelPipeline p = client.pipeline();
         p.addLast(handler);  //1,client::pipeline[ChannelInit,]
-
         //1，注册
         selector.register(client);
-
-
     }
 }
 
@@ -294,9 +254,10 @@ class MyInHandler extends ChannelInboundHandlerAdapter {
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
         ByteBuf buf = (ByteBuf) msg;
-//        CharSequence str = buf.readCharSequence(buf.readableBytes(), CharsetUtil.UTF_8);
+        // CharSequence str = buf.readCharSequence(buf.readableBytes(), CharsetUtil.UTF_8);
         CharSequence str = buf.getCharSequence(0, buf.readableBytes(), CharsetUtil.UTF_8);
         System.out.println(str);
         ctx.writeAndFlush(buf);
     }
+
 }

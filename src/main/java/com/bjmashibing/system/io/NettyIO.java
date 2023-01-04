@@ -16,9 +16,8 @@ public class NettyIO {
 
         NioEventLoopGroup boss = new NioEventLoopGroup(2);
         NioEventLoopGroup worker = new NioEventLoopGroup(2);
-
+        // 服务器引导
         ServerBootstrap boot = new ServerBootstrap();
-
         try {
             boot.group(boss, worker)
                     .channel(NioServerSocketChannel.class)
@@ -41,22 +40,13 @@ public class NettyIO {
                     .closeFuture()
                     .sync();            //阻塞当前线程到服务停止
 
-
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
-
-
     }
 }
 
 class MyInbound extends ChannelInboundHandlerAdapter {
-
-//    @Override
-//    public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
-//        System.out.println(msg);
-//        ctx.write(msg);
-//    }
 
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
@@ -65,14 +55,10 @@ class MyInbound extends ChannelInboundHandlerAdapter {
         byte[] data = new byte[size];
         buf.getBytes(0, data);
         String dd = new String(data);
-
         String[] strs = dd.split("\n");
-
         for (String str : strs) {
             System.out.print("触发的命令：" + str + "...");
         }
-
-
         ctx.write(msg);
 
     }
