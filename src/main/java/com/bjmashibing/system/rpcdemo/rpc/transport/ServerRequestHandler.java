@@ -4,7 +4,7 @@ import com.bjmashibing.system.rpcdemo.util.Packmsg;
 import com.bjmashibing.system.rpcdemo.util.SerDerUtil;
 import com.bjmashibing.system.rpcdemo.rpc.Dispatcher;
 import com.bjmashibing.system.rpcdemo.rpc.protocol.MyContent;
-import com.bjmashibing.system.rpcdemo.rpc.protocol.Myheader;
+import com.bjmashibing.system.rpcdemo.rpc.protocol.MyHeader;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.PooledByteBufAllocator;
 import io.netty.channel.ChannelHandlerContext;
@@ -66,7 +66,7 @@ public class ServerRequestHandler extends ChannelInboundHandlerAdapter {
                 content.setRes(res);
                 byte[] contentByte = SerDerUtil.ser(content);
 
-                Myheader resHeader = new Myheader();
+                MyHeader resHeader = new MyHeader();
                 resHeader.setRequestID(requestPkg.getHeader().getRequestID());
                 resHeader.setFlag(0x14141424);
                 resHeader.setDataLen(contentByte.length);

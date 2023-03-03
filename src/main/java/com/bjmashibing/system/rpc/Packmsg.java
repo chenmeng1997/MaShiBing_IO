@@ -6,14 +6,14 @@ package com.bjmashibing.system.rpc;
  */
 public class Packmsg {
 
-    Myheader header;
+    MyHeader header;
     MyContent content;
 
-    public Myheader getHeader() {
+    public MyHeader getHeader() {
         return header;
     }
 
-    public void setHeader(Myheader header) {
+    public void setHeader(MyHeader header) {
         this.header = header;
     }
 
@@ -25,7 +25,7 @@ public class Packmsg {
         this.content = content;
     }
 
-    public Packmsg(Myheader header, MyContent content) {
+    public Packmsg(MyHeader header, MyContent content) {
         this.header = header;
         this.content = content;
     }

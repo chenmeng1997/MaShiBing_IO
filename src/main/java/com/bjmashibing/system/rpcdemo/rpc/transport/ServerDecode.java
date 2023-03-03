@@ -1,8 +1,8 @@
 package com.bjmashibing.system.rpcdemo.rpc.transport;
 
-import com.bjmashibing.system.rpcdemo.util.Packmsg;
 import com.bjmashibing.system.rpcdemo.rpc.protocol.MyContent;
-import com.bjmashibing.system.rpcdemo.rpc.protocol.Myheader;
+import com.bjmashibing.system.rpcdemo.rpc.protocol.MyHeader;
+import com.bjmashibing.system.rpcdemo.util.Packmsg;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.ByteToMessageDecoder;
@@ -22,41 +22,34 @@ public class ServerDecode extends ByteToMessageDecoder {
     @Override
     protected void decode(ChannelHandlerContext ctx, ByteBuf buf, List<Object> out) throws Exception {
 
-        while(buf.readableBytes() >= 122) {
+        while (buf.readableBytes() >= 122) {
             byte[] bytes = new byte[122];
-            buf.getBytes(buf.readerIndex(),bytes);  //从哪里读取，读多少，但是readindex不变
+            buf.getBytes(buf.readerIndex(), bytes);  //从哪里读取，读多少，但是readindex不变
             ByteArrayInputStream in = new ByteArrayInputStream(bytes);
             ObjectInputStream oin = new ObjectInputStream(in);
-            Myheader header = (Myheader) oin.readObject();
-
-
+            MyHeader header = (MyHeader) oin.readObject();
             //DECODE在2个方向都使用
             //通信的协议
-            if(buf.readableBytes() - 122 >= header.getDataLen()){
+            if (buf.readableBytes() - 122 >= header.getDataLen()) {
                 //处理指针
                 buf.readBytes(122);  //移动指针到body开始的位置
-                byte[] data = new byte[(int)header.getDataLen()];
+                byte[] data = new byte[(int) header.getDataLen()];
                 buf.readBytes(data);
                 ByteArrayInputStream din = new ByteArrayInputStream(data);
                 ObjectInputStream doin = new ObjectInputStream(din);
 
-                if(header.getFlag() == 0x14141414){
+                if (header.getFlag() == 0x14141414) {
                     MyContent content = (MyContent) doin.readObject();
-                    out.add(new Packmsg(header,content));
+                    out.add(new Packmsg(header, content));
 
-                }else if(header.getFlag() == 0x14141424){
+                } else if (header.getFlag() == 0x14141424) {
                     MyContent content = (MyContent) doin.readObject();
-                    out.add(new Packmsg(header,content));
+                    out.add(new Packmsg(header, content));
                 }
-
-
-            }else{
+            } else {
                 break;
             }
-
-
         }
-
     }
 }
 

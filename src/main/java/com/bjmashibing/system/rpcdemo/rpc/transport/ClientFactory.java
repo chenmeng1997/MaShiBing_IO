@@ -1,10 +1,10 @@
 package com.bjmashibing.system.rpcdemo.rpc.transport;
 
 
-import com.bjmashibing.system.rpcdemo.util.SerDerUtil;
 import com.bjmashibing.system.rpcdemo.rpc.ResponseMappingCallback;
 import com.bjmashibing.system.rpcdemo.rpc.protocol.MyContent;
-import com.bjmashibing.system.rpcdemo.rpc.protocol.Myheader;
+import com.bjmashibing.system.rpcdemo.rpc.protocol.MyHeader;
+import com.bjmashibing.system.rpcdemo.util.SerDerUtil;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.PooledByteBufAllocator;
@@ -15,7 +15,9 @@ import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.codec.http.*;
 
 import java.io.*;
-import java.net.*;
+import java.net.HttpURLConnection;
+import java.net.InetSocketAddress;
+import java.net.URL;
 import java.util.Random;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
@@ -24,22 +26,27 @@ import java.util.concurrent.ConcurrentHashMap;
  * @author: 马士兵教育
  * @create: 2020-08-16 20:51
  */
-public class ClientFactory{
+public class ClientFactory {
 
     int poolSize = 5;
     NioEventLoopGroup clientWorker;
     Random rand = new Random();
-    private ClientFactory(){}
+
+    private ClientFactory() {
+    }
+
     private static final ClientFactory factory;
+
     static {
         factory = new ClientFactory();
     }
-    public static ClientFactory getFactory(){
+
+    public static ClientFactory getFactory() {
         return factory;
     }
 
 
-    public static  CompletableFuture<Object>    transport(MyContent content){
+    public static CompletableFuture<Object> transport(MyContent content) {
 
         //content  就是货物  现在可以用自定义的rpc传输协议（有状态），也可以用http协议作为载体传输
         //我们先手工用了http协议作为载体，那这样是不是代表我们未来可以让provider是一个tomcat  jetty 基于http协议的一个容器
@@ -52,30 +59,25 @@ public class ClientFactory{
         String type = "http";
         CompletableFuture<Object> res = new CompletableFuture<>();
 
-        if(type.equals("rpc")){
+        if ("rpc".equals(type)) {
             byte[] msgBody = SerDerUtil.ser(content);
-            Myheader header = Myheader.createHeader(msgBody);
+            MyHeader header = MyHeader.createHeader(msgBody);
             byte[] msgHeader = SerDerUtil.ser(header);
 //        System.out.println("main:::"+ msgHeader.length);
-
-
             NioSocketChannel clientChannel = factory.getClient(new InetSocketAddress("localhost", 9090));
-
             ByteBuf byteBuf = PooledByteBufAllocator.DEFAULT.directBuffer(msgHeader.length + msgBody.length);
-
             long id = header.getRequestID();
-
             ResponseMappingCallback.addCallBack(id, res);
             byteBuf.writeBytes(msgHeader);
             byteBuf.writeBytes(msgBody);
             ChannelFuture channelFuture = clientChannel.writeAndFlush(byteBuf);
-        }else{
+        } else {
             //使用http协议为载体
             //1，用URL 现成的工具（包含了http的编解码，发送，socket，连接）
 //            urlTS(content,res);
 
             //2，自己操心：on netty  （io 框架）+ 已经提供的http相关的编解码
-            nettyTS(content,res);
+            nettyTS(content, res);
         }
 
 
@@ -109,13 +111,11 @@ public class ClientFactory{
                                         System.out.println(response.toString());
 
                                         ByteBuf resContent = response.content();
-                                        byte[] data =  new byte[resContent.readableBytes()];
+                                        byte[] data = new byte[resContent.readableBytes()];
                                         resContent.readBytes(data);
 
                                         ObjectInputStream oin = new ObjectInputStream(new ByteArrayInputStream(data));
-                                        MyContent o = (MyContent)oin.readObject();
-
-
+                                        MyContent o = (MyContent) oin.readObject();
                                         res.complete(o.getRes());
                                     }
                                 });
@@ -134,7 +134,7 @@ public class ClientFactory{
                     Unpooled.copiedBuffer(data)
             );
 
-            request.headers().set(HttpHeaderNames.CONTENT_LENGTH,data.length);
+            request.headers().set(HttpHeaderNames.CONTENT_LENGTH, data.length);
 
             clientChannel.writeAndFlush(request).sync();//作为client 向server端发送：http  request
         } catch (InterruptedException e) {
@@ -162,65 +162,51 @@ public class ClientFactory{
             ObjectOutputStream oout = new ObjectOutputStream(out);
             oout.writeObject(content);  //这里真的发送了嘛？
 
-            if(hc.getResponseCode() == 200){
+            if (hc.getResponseCode() == 200) {
                 InputStream in = hc.getInputStream();
                 ObjectInputStream oin = new ObjectInputStream(in);
                 MyContent myContent = (MyContent) oin.readObject();
-                obj =  myContent.getRes();
-
+                obj = myContent.getRes();
             }
-
-
-
-        } catch (MalformedURLException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
-        } catch (ClassNotFoundException e) {
+        } catch (ClassNotFoundException | IOException e) {
             e.printStackTrace();
         }
-
-
         res.complete(obj);
-
     }
 
 
     //一个consumer 可以连接很多的provider，每一个provider都有自己的pool  K,V
 
-    ConcurrentHashMap<InetSocketAddress, ClientPool> outboxs = new ConcurrentHashMap<>();
+    ConcurrentHashMap<InetSocketAddress, ClientPool> outBoxMap = new ConcurrentHashMap<>();
 
 
-
-
-    public  NioSocketChannel getClient(InetSocketAddress address){
+    public NioSocketChannel getClient(InetSocketAddress address) {
 
         //TODO 在并发情况下一定要谨慎
-        ClientPool clientPool = outboxs.get(address);
-        if(clientPool ==  null){
-            synchronized(outboxs){
-                if(clientPool ==  null){
-                    outboxs.putIfAbsent(address,new ClientPool(poolSize));
-                    clientPool =  outboxs.get(address);
+        ClientPool clientPool = outBoxMap.get(address);
+        if (clientPool == null) {
+            synchronized (outBoxMap) {
+                if (clientPool == null) {
+                    outBoxMap.putIfAbsent(address, new ClientPool(poolSize));
+                    clientPool = outBoxMap.get(address);
                 }
             }
         }
 
         int i = rand.nextInt(poolSize);
 
-        if( clientPool.clients[i] != null && clientPool.clients[i].isActive()){
+        if (clientPool.clients[i] != null && clientPool.clients[i].isActive()) {
             return clientPool.clients[i];
-        }else{
-            synchronized (clientPool.lock[i]){
-                if(clientPool.clients[i] == null || ! clientPool.clients[i].isActive())
-                clientPool.clients[i] = create(address);
+        } else {
+            synchronized (clientPool.lock[i]) {
+                if (clientPool.clients[i] == null || !clientPool.clients[i].isActive())
+                    clientPool.clients[i] = create(address);
             }
         }
-        return  clientPool.clients[i];
-
+        return clientPool.clients[i];
     }
 
-    private NioSocketChannel create(InetSocketAddress address){
+    private NioSocketChannel create(InetSocketAddress address) {
 
         //基于 netty 的客户端创建方式
         clientWorker = new NioEventLoopGroup(1);
@@ -229,23 +215,19 @@ public class ClientFactory{
                 .channel(NioSocketChannel.class)
                 .handler(new ChannelInitializer<NioSocketChannel>() {
                     @Override
-                    protected void initChannel(NioSocketChannel ch) throws Exception {
+                    protected void initChannel(NioSocketChannel ch) {
                         ChannelPipeline p = ch.pipeline();
                         p.addLast(new ServerDecode());
                         p.addLast(new ClientResponses());  //解决给谁的？？  requestID..
                     }
                 }).connect(address);
         try {
-            NioSocketChannel client = (NioSocketChannel)connect.sync().channel();
-            return client;
+            return (NioSocketChannel) connect.sync().channel();
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
         return null;
-
-
     }
-
 
 }
 

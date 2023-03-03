@@ -8,7 +8,7 @@ public class MyCar implements Car {
 
     @Override
     public String ooxx(String msg) {
-        return "server res "+ msg;
+        return "server res " + msg;
     }
 
     @Override

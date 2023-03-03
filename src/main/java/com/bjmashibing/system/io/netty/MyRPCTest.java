@@ -12,7 +12,6 @@ import io.netty.handler.codec.ByteToMessageDecoder;
 import org.junit.Test;
 
 import java.io.*;
-import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
@@ -24,7 +23,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
-/**
+/*
  * @author: 马士兵教育
  * @create: 2020-07-12 20:08
  * <p>
@@ -63,11 +62,12 @@ public class MyRPCTest {
         NioEventLoopGroup worker = boss;
 
         ServerBootstrap sbs = new ServerBootstrap();
-        ChannelFuture bind = sbs.group(boss, worker)
+        ChannelFuture bind = sbs
+                .group(boss, worker)
                 .channel(NioServerSocketChannel.class)
                 .childHandler(new ChannelInitializer<NioSocketChannel>() {
                     @Override
-                    protected void initChannel(NioSocketChannel ch) throws Exception {
+                    protected void initChannel(NioSocketChannel ch) {
                         System.out.println("server accept cliet port: " + ch.remoteAddress().getPort());
                         ChannelPipeline p = ch.pipeline();
                         p.addLast(new ServerDecode());
@@ -148,7 +148,7 @@ public class MyRPCTest {
 
             //2，requestID+message  ，本地要缓存
             //协议：【header<>】【msgBody】
-            Myheader header = createHeader(msgBody);
+            MyHeader header = createHeader(msgBody);
 
             out.reset();
             oout = new ObjectOutputStream(out);
@@ -180,8 +180,8 @@ public class MyRPCTest {
         });
     }
 
-    public static Myheader createHeader(byte[] msg) {
-        Myheader header = new Myheader();
+    public static MyHeader createHeader(byte[] msg) {
+        MyHeader header = new MyHeader();
         int size = msg.length;
         int f = 0x14141414;
         long requestID = Math.abs(UUID.randomUUID().getLeastSignificantBits());
@@ -193,6 +193,9 @@ public class MyRPCTest {
     }
 }
 
+/**
+ * 调度程序
+ */
 class Dispatcher {
 
     public static ConcurrentHashMap<String, Object> invokeMap = new ConcurrentHashMap<>();
@@ -237,7 +240,7 @@ class ServerDecode extends ByteToMessageDecoder {
             buf.getBytes(buf.readerIndex(), bytes);  //从哪里读取，读多少，但是readindex不变
             ByteArrayInputStream in = new ByteArrayInputStream(bytes);
             ObjectInputStream oin = new ObjectInputStream(in);
-            Myheader header = (Myheader) oin.readObject();
+            MyHeader header = (MyHeader) oin.readObject();
 
 
             //DECODE在2个方向都使用
@@ -299,43 +302,39 @@ class ServerRequestHandler extends ChannelInboundHandlerAdapter {
 
         //3，自己创建线程池
         //2,使用netty自己的eventloop来处理业务及返回
-        ctx.executor().execute(new Runnable() {
-//        ctx.executor().parent().next().execute(new Runnable() {
+        //        ctx.executor().parent().next().execute(new Runnable() {
+        ctx.executor().execute(() -> {
 
-            @Override
-            public void run() {
+            String serviceName = requestPkg.content.getName();
+            String method = requestPkg.content.getMethodName();
+            Object c = dis.get(serviceName);
+            Class<?> clazz = c.getClass();
+            Object res = null;
+            try {
+                Method m = clazz.getMethod(method, requestPkg.content.parameterTypes);
+                res = m.invoke(c, requestPkg.content.getArgs());
 
-                String serviceName = requestPkg.content.getName();
-                String method = requestPkg.content.getMethodName();
-                Object c = dis.get(serviceName);
-                Class<?> clazz = c.getClass();
-                Object res = null;
-                try {
-                    Method m = clazz.getMethod(method, requestPkg.content.parameterTypes);
-                    res = m.invoke(c, requestPkg.content.getArgs());
-
-                } catch (NoSuchMethodException | InvocationTargetException | IllegalAccessException e) {
-                    e.printStackTrace();
-                }
-
-
-//                String execThreadName = Thread.currentThread().getName();
-                MyContent content = new MyContent();
-//                String s = "io thread: " + ioThreadName + " exec thread: " + execThreadName + " from args:" + requestPkg.content.getArgs()[0];
-                content.setRes((String) res);
-                byte[] contentByte = SerDerUtil.ser(content);
-
-                Myheader resHeader = new Myheader();
-                resHeader.setRequestID(requestPkg.header.getRequestID());
-                resHeader.setFlag(0x14141424);
-                resHeader.setDataLen(contentByte.length);
-                byte[] headerByte = SerDerUtil.ser(resHeader);
-                ByteBuf byteBuf = PooledByteBufAllocator.DEFAULT.directBuffer(headerByte.length + contentByte.length);
-
-                byteBuf.writeBytes(headerByte);
-                byteBuf.writeBytes(contentByte);
-                ctx.writeAndFlush(byteBuf);
+            } catch (NoSuchMethodException | InvocationTargetException | IllegalAccessException e) {
+                e.printStackTrace();
             }
+
+
+            // String execThreadName = Thread.currentThread().getName();
+            MyContent content = new MyContent();
+            // String s = "io thread: " + ioThreadName + " exec thread: " + execThreadName + " from args:" + requestPkg.content.getArgs()[0];
+            content.setRes((String) res);
+            byte[] contentByte = SerDerUtil.ser(content);
+
+            MyHeader resHeader = new MyHeader();
+            resHeader.setRequestID(requestPkg.header.getRequestID());
+            resHeader.setFlag(0x14141424);
+            resHeader.setDataLen(contentByte.length);
+            byte[] headerByte = SerDerUtil.ser(resHeader);
+            ByteBuf byteBuf = PooledByteBufAllocator.DEFAULT.directBuffer(headerByte.length + contentByte.length);
+
+            byteBuf.writeBytes(headerByte);
+            byteBuf.writeBytes(contentByte);
+            ctx.writeAndFlush(byteBuf);
         });
     }
 
@@ -462,7 +461,7 @@ class ClientResponses extends ChannelInboundHandlerAdapter {
 }
 
 
-class Myheader implements Serializable {
+class MyHeader implements Serializable {
     //通信上的协议
     /*
     1，ooxx值
@@ -500,6 +499,9 @@ class Myheader implements Serializable {
     }
 }
 
+/**
+ * 内容
+ */
 class MyContent implements Serializable {
 
     String name;
@@ -551,7 +553,7 @@ class MyContent implements Serializable {
 
 
 interface Car {
-    public String ooxx(String msg);
+    String ooxx(String msg);
 }
 
 interface Fly {

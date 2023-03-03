@@ -8,8 +8,8 @@ import java.io.Serializable;
  */
 public class Persion implements Serializable {
 
-    String name ;
-    Integer age ;
+    String name;
+    Integer age;
 
     public String getName() {
         return name;
@@ -29,6 +29,6 @@ public class Persion implements Serializable {
 
     @Override
     public String toString() {
-        return name + " " + age ;
+        return name + " " + age;
     }
 }

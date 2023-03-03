@@ -8,23 +8,27 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class Dispatcher {
 
-    private static Dispatcher dis = null;
+    private static Dispatcher dis;
+
     static {
         dis = new Dispatcher();
     }
-    public static Dispatcher getDis(){
+
+    public static Dispatcher getDis() {
         return dis;
     }
-    private Dispatcher(){
+
+    private Dispatcher() {
 
     }
 
-    public  static ConcurrentHashMap<String,Object> invokeMap = new ConcurrentHashMap<>();
+    public static ConcurrentHashMap<String, Object> invokeMap = new ConcurrentHashMap<>();
 
-    public void register(String k,Object obj){
-        invokeMap.put(k,obj);
+    public void register(String k, Object obj) {
+        invokeMap.put(k, obj);
     }
-    public Object get(String k){
+
+    public Object get(String k) {
         return invokeMap.get(k);
     }
 

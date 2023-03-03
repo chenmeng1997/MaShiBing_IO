@@ -7,7 +7,7 @@ import java.util.UUID;
  * @author: 马士兵教育
  * @create: 2020-08-16 20:37
  */
-public class Myheader implements Serializable {
+public class MyHeader implements Serializable {
     //通信上的协议
     /*
     1，ooxx值
@@ -20,11 +20,11 @@ public class Myheader implements Serializable {
     long dataLen;
 
 
-    public static Myheader createHeader(byte[] msg){
-        Myheader header = new Myheader();
+    public static MyHeader createHeader(byte[] msg) {
+        MyHeader header = new MyHeader();
         int size = msg.length;
         int f = 0x14141414;
-        long requestID =  Math.abs(UUID.randomUUID().getLeastSignificantBits());
+        long requestID = Math.abs(UUID.randomUUID().getLeastSignificantBits());
         //0x14  0001 0100
         header.setFlag(f);
         header.setDataLen(size);

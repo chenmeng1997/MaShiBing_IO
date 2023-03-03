@@ -26,45 +26,30 @@ public class MyHttpRpcHandler extends HttpServlet {
         ServletInputStream in = req.getInputStream();
         ObjectInputStream oin = new ObjectInputStream(in);
         try {
-            MyContent myContent = (MyContent)oin.readObject();
-
+            MyContent myContent = (MyContent) oin.readObject();
             String serviceName = myContent.getName();
             String method = myContent.getMethodName();
             Object c = Dispatcher.getDis().get(serviceName);
             Class<?> clazz = c.getClass();
             Object res = null;
             try {
-
-
                 Method m = clazz.getMethod(method, myContent.getParameterTypes());
                 res = m.invoke(c, myContent.getArgs());
-
-
-            } catch (NoSuchMethodException e) {
-                e.printStackTrace();
-            } catch (IllegalAccessException e) {
-                e.printStackTrace();
-            } catch (InvocationTargetException e) {
+            } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
                 e.printStackTrace();
             }
-
-
             MyContent resContent = new MyContent();
             resContent.setRes(res);
-            if(res == null){
+            if (res == null) {
                 System.out.println("完蛋了。。。");
             }
 //                byte[] contentByte = SerDerUtil.ser(resContent);
-
             ServletOutputStream out = resp.getOutputStream();
             ObjectOutputStream oout = new ObjectOutputStream(out);
             oout.writeObject(resContent);
-
         } catch (ClassNotFoundException e) {
             e.printStackTrace();
         }
-
-
     }
 
 }

@@ -1,7 +1,7 @@
 package com.bjmashibing.system.rpcdemo.util;
 
 import com.bjmashibing.system.rpcdemo.rpc.protocol.MyContent;
-import com.bjmashibing.system.rpcdemo.rpc.protocol.Myheader;
+import com.bjmashibing.system.rpcdemo.rpc.protocol.MyHeader;
 
 /**
  * @author: 马士兵教育
@@ -9,14 +9,14 @@ import com.bjmashibing.system.rpcdemo.rpc.protocol.Myheader;
  */
 public class Packmsg {
 
-    Myheader header;
+    MyHeader header;
     MyContent content;
 
-    public Myheader getHeader() {
+    public MyHeader getHeader() {
         return header;
     }
 
-    public void setHeader(Myheader header) {
+    public void setHeader(MyHeader header) {
         this.header = header;
     }
 
@@ -28,7 +28,7 @@ public class Packmsg {
         this.content = content;
     }
 
-    public Packmsg(Myheader header, MyContent content) {
+    public Packmsg(MyHeader header, MyContent content) {
         this.header = header;
         this.content = content;
     }
