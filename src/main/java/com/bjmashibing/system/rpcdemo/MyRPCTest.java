@@ -83,42 +83,30 @@ public class MyRPCTest {
                         //2，小火车，传输协议用的就是http了  <- 你可以自己学，字节节码byte[]
                         //其实netty提供了一套编解码
                         p.addLast(new HttpServerCodec())
-                                .addLast(new HttpObjectAggregator(1024*512))
-                                .addLast(new ChannelInboundHandlerAdapter(){
+                                .addLast(new HttpObjectAggregator(1024 * 512))
+                                .addLast(new ChannelInboundHandlerAdapter() {
                                     @Override
                                     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
                                         //http 协议 ,  这个msg是一个啥：完整的http-request
                                         FullHttpRequest request = (FullHttpRequest) msg;
                                         System.out.println(request.toString());  //因为现在sonsumer使用的是一个现成的URL
-
-
                                         //这个就是consumer 序列化的MyContent
                                         ByteBuf content = request.content();
-                                        byte[]  data = new byte[content.readableBytes()];
+                                        byte[] data = new byte[content.readableBytes()];
                                         content.readBytes(data);
                                         ObjectInputStream oin = new ObjectInputStream(new ByteArrayInputStream(data));
-                                        MyContent myContent = (MyContent)oin.readObject();
-
+                                        MyContent myContent = (MyContent) oin.readObject();
                                         String serviceName = myContent.getName();
                                         String method = myContent.getMethodName();
                                         Object c = dis.get(serviceName);
                                         Class<?> clazz = c.getClass();
                                         Object res = null;
                                         try {
-
-
                                             Method m = clazz.getMethod(method, myContent.getParameterTypes());
                                             res = m.invoke(c, myContent.getArgs());
-
-
-                                        } catch (NoSuchMethodException e) {
-                                            e.printStackTrace();
-                                        } catch (IllegalAccessException e) {
-                                            e.printStackTrace();
-                                        } catch (InvocationTargetException e) {
+                                        } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
                                             e.printStackTrace();
                                         }
-
 
                                         MyContent resContent = new MyContent();
                                         resContent.setRes(res);
@@ -128,16 +116,12 @@ public class MyRPCTest {
                                                 HttpResponseStatus.OK,
                                                 Unpooled.copiedBuffer(contentByte));
 
-                                        response.headers().set(HttpHeaderNames.CONTENT_LENGTH,contentByte.length);
+                                        response.headers().set(HttpHeaderNames.CONTENT_LENGTH, contentByte.length);
 
                                         //http协议，header+body
                                         ctx.writeAndFlush(response);
-
-
                                     }
                                 });
-
-
                     }
                 }).bind(new InetSocketAddress("localhost", 9090));
         try {
@@ -146,12 +130,11 @@ public class MyRPCTest {
             e.printStackTrace();
         }
 
-
     }
 
 
     @Test
-    public void startHttpServer(){
+    public void startHttpServer() {
         MyCar car = new MyCar();
         MyFly fly = new MyFly();
 
@@ -160,12 +143,11 @@ public class MyRPCTest {
         dis.register(Car.class.getName(), car);
         dis.register(Fly.class.getName(), fly);
 
-
         //tomcat jetty  【servlet】
         Server server = new Server(new InetSocketAddress("localhost", 9090));
         ServletContextHandler handler = new ServletContextHandler(server, "/");
         server.setHandler(handler);
-        handler.addServlet(MyHttpRpcHandler.class,"/*");  //web.xml
+        handler.addServlet(MyHttpRpcHandler.class, "/*");  //web.xml
 
         try {
             server.start();
@@ -217,18 +199,9 @@ public class MyRPCTest {
         System.out.println(zhangsan);
     }
 
-
-
-
-
-
-
-
     @Test
     public void testRpcLocal() {
-        new Thread(() -> {
-            startServer();
-        }).start();
+        new Thread(this::startServer).start();
 
         System.out.println("server started......");
 
@@ -236,7 +209,5 @@ public class MyRPCTest {
         Persion zhangsan = car.oxox("zhangsan", 16);
         System.out.println(zhangsan);
     }
-
-
 
 }

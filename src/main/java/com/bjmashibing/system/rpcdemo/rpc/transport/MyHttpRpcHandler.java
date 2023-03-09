@@ -43,7 +43,7 @@ public class MyHttpRpcHandler extends HttpServlet {
             if (res == null) {
                 System.out.println("完蛋了。。。");
             }
-//                byte[] contentByte = SerDerUtil.ser(resContent);
+            // byte[] contentByte = SerDerUtil.ser(resContent);
             ServletOutputStream out = resp.getOutputStream();
             ObjectOutputStream oout = new ObjectOutputStream(out);
             oout.writeObject(resContent);

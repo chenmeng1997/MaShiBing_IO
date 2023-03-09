@@ -261,8 +261,6 @@ class ServerDecode extends ByteToMessageDecoder {
                     MyContent content = (MyContent) doin.readObject();
                     out.add(new Packmsg(header, content));
                 }
-
-
             } else {
                 break;
             }
@@ -287,7 +285,7 @@ class ServerRequestHandler extends ChannelInboundHandlerAdapter {
 
         Packmsg requestPkg = (Packmsg) msg;
 
-//        System.out.println("server handler :"+ requestPkg.content.getArgs()[0]);
+        // System.out.println("server handler :"+ requestPkg.content.getArgs()[0]);
 
         //如果假设处理完了，要给客户端返回了~！！！
         //你需要注意哪些环节~！！！！！！！！
@@ -305,7 +303,7 @@ class ServerRequestHandler extends ChannelInboundHandlerAdapter {
         //3，自己创建线程池
         //2,使用netty自己的eventloop来处理业务及返回
         ctx.executor().execute(new Runnable() {
-//        ctx.executor().parent().next().execute(new Runnable() {
+            // ctx.executor().parent().next().execute(new Runnable() {
 
             @Override
             public void run() {
@@ -323,9 +321,9 @@ class ServerRequestHandler extends ChannelInboundHandlerAdapter {
                 }
 
 
-//                String execThreadName = Thread.currentThread().getName();
+                // String execThreadName = Thread.currentThread().getName();
                 MyContent content = new MyContent();
-//                String s = "io thread: " + ioThreadName + " exec thread: " + execThreadName + " from args:" + requestPkg.content.getArgs()[0];
+                // String s = "io thread: " + ioThreadName + " exec thread: " + execThreadName + " from args:" + requestPkg.content.getArgs()[0];
                 content.setRes((String) res);
                 byte[] contentByte = SerDerUtil.ser(content);
 
@@ -341,8 +339,6 @@ class ServerRequestHandler extends ChannelInboundHandlerAdapter {
                 ctx.writeAndFlush(byteBuf);
             }
         });
-
-
     }
 
 }
@@ -374,19 +370,15 @@ class ClientFactory {
     ConcurrentHashMap<InetSocketAddress, ClientPool> outboxs = new ConcurrentHashMap<>();
 
     public synchronized NioSocketChannel getClient(InetSocketAddress address) {
-
         ClientPool clientPool = outboxs.get(address);
         if (clientPool == null) {
             outboxs.putIfAbsent(address, new ClientPool(poolSize));
             clientPool = outboxs.get(address);
         }
-
         int i = rand.nextInt(poolSize);
-
         if (clientPool.clients[i] != null && clientPool.clients[i].isActive()) {
             return clientPool.clients[i];
         }
-
         synchronized (clientPool.lock[i]) {
             return clientPool.clients[i] = create(address);
         }
@@ -415,10 +407,7 @@ class ClientFactory {
             e.printStackTrace();
         }
         return null;
-
-
     }
-
 
 }
 
@@ -427,8 +416,8 @@ class ClientPool {
     Object[] lock;
 
     ClientPool(int size) {
-        clients = new NioSocketChannel[size];//init  连接都是空的
-        lock = new Object[size]; //锁是可以初始化的
+        clients = new NioSocketChannel[size];// init  连接都是空的
+        lock = new Object[size]; // 锁是可以初始化的
         for (int i = 0; i < size; i++) {
             lock[i] = new Object();
         }
@@ -437,26 +426,23 @@ class ClientPool {
 }
 
 class ResponseMappingCallback {
-    static ConcurrentHashMap<Long, CompletableFuture> mapping = new ConcurrentHashMap<>();
+    static ConcurrentHashMap<Long, CompletableFuture<String>> mapping = new ConcurrentHashMap<>();
 
-    public static void addCallBack(long requestID, CompletableFuture cb) {
+    public static void addCallBack(long requestID, CompletableFuture<String> cb) {
         mapping.putIfAbsent(requestID, cb);
     }
 
     public static void runCallBack(Packmsg msg) {
-        CompletableFuture cf = mapping.get(msg.header.getRequestID());
-//        runnable.run();
+        CompletableFuture<String> cf = mapping.get(msg.header.getRequestID());
+        // runnable.run();
         cf.complete(msg.getContent().getRes());
         removeCB(msg.header.getRequestID());
-
     }
 
     private static void removeCB(long requestID) {
         mapping.remove(requestID);
     }
-
 }
-
 
 class ClientResponses extends ChannelInboundHandlerAdapter {
 

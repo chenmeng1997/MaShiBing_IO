@@ -48,14 +48,14 @@ public class ClientFactory {
 
     public static CompletableFuture<Object> transport(MyContent content) {
 
-        //content  就是货物  现在可以用自定义的rpc传输协议（有状态），也可以用http协议作为载体传输
-        //我们先手工用了http协议作为载体，那这样是不是代表我们未来可以让provider是一个tomcat  jetty 基于http协议的一个容器
-        //有无状态来自于你使用的什么协议，那么http协议肯定是无状态，每请求对应一个连接
-        //dubbo 是一个rpc框架  netty 是一个io框架
-        //dubbo中传输协议上，可以是自定义的rpc传输协议，http协议
+        // content  就是货物  现在可以用自定义的rpc传输协议（有状态），也可以用http协议作为载体传输
+        // 我们先手工用了http协议作为载体，那这样是不是代表我们未来可以让provider是一个tomcat  jetty 基于http协议的一个容器
+        // 有无状态来自于你使用的什么协议，那么http协议肯定是无状态，每请求对应一个连接
+        // dubbo 是一个rpc框架  netty 是一个io框架
+        // dubbo中传输协议上，可以是自定义的rpc传输协议，http协议
 
 
-//        String type = "rpc";
+        // String type = "rpc";
         String type = "http";
         CompletableFuture<Object> res = new CompletableFuture<>();
 
@@ -63,7 +63,7 @@ public class ClientFactory {
             byte[] msgBody = SerDerUtil.ser(content);
             MyHeader header = MyHeader.createHeader(msgBody);
             byte[] msgHeader = SerDerUtil.ser(header);
-//        System.out.println("main:::"+ msgHeader.length);
+            // System.out.println("main:::"+ msgHeader.length);
             NioSocketChannel clientChannel = factory.getClient(new InetSocketAddress("localhost", 9090));
             ByteBuf byteBuf = PooledByteBufAllocator.DEFAULT.directBuffer(msgHeader.length + msgBody.length);
             long id = header.getRequestID();
@@ -74,13 +74,10 @@ public class ClientFactory {
         } else {
             //使用http协议为载体
             //1，用URL 现成的工具（包含了http的编解码，发送，socket，连接）
-//            urlTS(content,res);
-
+            // urlTS(content,res);
             //2，自己操心：on netty  （io 框架）+ 已经提供的http相关的编解码
             nettyTS(content, res);
         }
-
-
         return res;
     }
 
@@ -98,7 +95,7 @@ public class ClientFactory {
                 .channel(NioSocketChannel.class)
                 .handler(new ChannelInitializer<NioSocketChannel>() {
                     @Override
-                    protected void initChannel(NioSocketChannel ch) throws Exception {
+                    protected void initChannel(NioSocketChannel ch) {
                         ChannelPipeline p = ch.pipeline();
                         p.addLast(new HttpClientCodec())
                                 .addLast(new HttpObjectAggregator(1024 * 512))
@@ -122,20 +119,16 @@ public class ClientFactory {
                     }
                 });
         //未来连接后，收到数据的处理handler
-
         try {
             ChannelFuture syncFuture = client.connect("localhost", 9090).sync();
             //2，发送
-
             Channel clientChannel = syncFuture.channel();
             byte[] data = SerDerUtil.ser(content);
             DefaultFullHttpRequest request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_0,
                     HttpMethod.POST, "/",
                     Unpooled.copiedBuffer(data)
             );
-
             request.headers().set(HttpHeaderNames.CONTENT_LENGTH, data.length);
-
             clientChannel.writeAndFlush(request).sync();//作为client 向server端发送：http  request
         } catch (InterruptedException e) {
             e.printStackTrace();
@@ -149,14 +142,11 @@ public class ClientFactory {
         Object obj = null;
         try {
             URL url = new URL("http://localhost:9090/");
-
             HttpURLConnection hc = (HttpURLConnection) url.openConnection();
-
             //post
             hc.setRequestMethod("POST");
             hc.setDoOutput(true);
             hc.setDoInput(true);
-
 
             OutputStream out = hc.getOutputStream();
             ObjectOutputStream oout = new ObjectOutputStream(out);
@@ -175,7 +165,7 @@ public class ClientFactory {
     }
 
 
-    //一个consumer 可以连接很多的provider，每一个provider都有自己的pool  K,V
+    // 一个consumer 可以连接很多的provider，每一个provider都有自己的pool  K,V
 
     ConcurrentHashMap<InetSocketAddress, ClientPool> outBoxMap = new ConcurrentHashMap<>();
 
@@ -230,4 +220,3 @@ public class ClientFactory {
     }
 
 }
-
