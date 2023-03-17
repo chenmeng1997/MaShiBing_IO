@@ -51,9 +51,13 @@ public class SocketIOProperties {
         ServerSocket server = null;
         try {
             server = new ServerSocket();
+            // 地址绑定
             server.bind(new InetSocketAddress(9090), BACK_LOG);
+            // 缓冲区大小
             server.setReceiveBufferSize(RECEIVE_BUFFER);
+            // 重用地址
             server.setReuseAddress(REUSE_ADDR);
+            // 指定超时时间
             server.setSoTimeout(SO_TIMEOUT);
 
         } catch (IOException e) {
@@ -64,17 +68,21 @@ public class SocketIOProperties {
             while (true) {
 
                 // System.in.read();  //分水岭：
-
+                // 监听到这个套接字的连接并接受它。该方法阻塞，直到建立连接
                 Socket client = server.accept();  //阻塞的，没有 -1  一直卡着不动  accept(4,
                 System.out.println("client port: " + client.getPort());
-
+                // 启用/禁用SO_KEEPALIVE
                 client.setKeepAlive(CLI_KEEPALIVE);
                 client.setOOBInline(CLI_OOB);
+                // 缓冲区大小
                 client.setReceiveBufferSize(CLI_REC_BUF);
+                // 设置重用地址
                 client.setReuseAddress(CLI_REUSE_ADDR);
+                // 缓冲区大小
                 client.setSendBufferSize(CLI_SEND_BUF);
                 client.setSoLinger(CLI_LINGER, CLI_LINGER_N);
                 client.setSoTimeout(CLI_TIMEOUT);
+                // 启用/禁用TCP_NODELAY
                 client.setTcpNoDelay(CLI_NO_DELAY);
 
                 //client.read   //阻塞   没有  -1 0

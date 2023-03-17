@@ -123,9 +123,9 @@ public class OSFileIO {
         // 分配直接
         ByteBuffer buffer = ByteBuffer.allocateDirect(1024);
 
-        System.out.println("postition: " + buffer.position());
-        System.out.println("limit: " + buffer.limit());
-        System.out.println("capacity: " + buffer.capacity());
+        System.out.println("缓冲区的位置 position: " + buffer.position());
+        System.out.println("缓冲区的极限 limit: " + buffer.limit());
+        System.out.println("缓冲区的容量 capacity: " + buffer.capacity());
         System.out.println("mark: " + buffer);
 
         buffer.put("123".getBytes());
@@ -133,7 +133,7 @@ public class OSFileIO {
         System.out.println("-------------put:123......");
         System.out.println("mark: " + buffer);
 
-        //读写交替
+        //读写交替 翻转这个缓冲区
         buffer.flip();
 
         System.out.println("-------------flip......");
