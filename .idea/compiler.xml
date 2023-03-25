@@ -8,6 +8,7 @@
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />
         <module name="MaShiBing_IO" />
+        <module name="MaShiBing_IO_Copy" />
         <module name="bjmashbing-sysio" />
       </profile>
     </annotationProcessing>
