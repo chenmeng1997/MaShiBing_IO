@@ -16,20 +16,30 @@ public class SelectorThread extends ThreadLocal<LinkedBlockingQueue<Channel>> im
     // 多线程情况下，该主机，该程序的并发客户端被分配到多个selector上
     // 注意，每个客户端，只绑定到其中一个selector
     // 其实不会有交互问题
+    /**
+     * 选择器
+     */
     Selector selector = null;
-    // LinkedBlockingQueue<Channel> lbq = new LinkedBlockingQueue<>();
-    LinkedBlockingQueue<Channel> lbq = get();  //lbq  在接口或者类中是固定使用方式逻辑写死了。你需要是lbq每个线程持有自己的独立对象
 
-    SelectorThreadGroup stg;
+    /**
+     * 在接口或者类中是固定使用方式逻辑写死了。你需要是lbq每个线程持有自己的独立对象
+     */
+    LinkedBlockingQueue<Channel> blockingQueues = this.get();
+
+    /**
+     * 工作选择器组
+     */
+    SelectorThreadGroup threadGroup;
 
     @Override
     protected LinkedBlockingQueue<Channel> initialValue() {
-        return new LinkedBlockingQueue<>();//你要丰富的是这里！  pool。。。
+        //你要丰富的是这里！  pool。。。
+        return new LinkedBlockingQueue<>();
     }
 
-    SelectorThread(SelectorThreadGroup stg) {
+    SelectorThread(SelectorThreadGroup threadGroup) {
         try {
-            this.stg = stg;
+            this.threadGroup = threadGroup;
             selector = Selector.open();
         } catch (IOException e) {
             e.printStackTrace();
@@ -67,9 +77,9 @@ public class SelectorThread extends ThreadLocal<LinkedBlockingQueue<Channel>> im
                     }
                 }
                 //3,处理一些task :  listen  client
-                if (!lbq.isEmpty()) {   //队列是个啥东西啊？ 堆里的对象，线程的栈是独立，堆是共享的
+                if (!blockingQueues.isEmpty()) {   //队列是个啥东西啊？ 堆里的对象，线程的栈是独立，堆是共享的
                     //只有方法的逻辑，本地变量是线程隔离的
-                    Channel c = lbq.take();
+                    Channel c = blockingQueues.take();
                     if (c instanceof ServerSocketChannel) {
                         ServerSocketChannel server = (ServerSocketChannel) c;
                         server.register(selector, SelectionKey.OP_ACCEPT);
@@ -124,19 +134,21 @@ public class SelectorThread extends ThreadLocal<LinkedBlockingQueue<Channel>> im
         try {
             SocketChannel client = server.accept();
             client.configureBlocking(false);
-
             //choose a selector  and  register!!
-
-            stg.nextSelectorV3(client);
+            threadGroup.nextSelectorV3(client);
             // stg.nextSelectorV2(client);
-
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
+    /**
+     * 设置工作选择器组
+     *
+     * @param stgWorker 工作选择器组
+     */
     public void setWorker(SelectorThreadGroup stgWorker) {
-        this.stg = stgWorker;
+        this.threadGroup = stgWorker;
     }
 
 }

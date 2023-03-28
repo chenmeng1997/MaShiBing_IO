@@ -10,28 +10,44 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * @author: 马士兵教育
+ * @describe 选择器线程组
  * @create: 2020-06-21 20:37
  */
 public class SelectorThreadGroup {
 
-    SelectorThread[] sts;
+    SelectorThread[] selectorThreadArray;
     ServerSocketChannel server = null;
     AtomicInteger xid = new AtomicInteger(0);
     SelectorThreadGroup stg = this;
 
+    /**
+     * 选择器线程组-工作线程组
+     *
+     * @param stg 选择器线程组
+     */
     public void setWorker(SelectorThreadGroup stg) {
         this.stg = stg;
     }
 
+    /**
+     * 选择器线程组
+     *
+     * @param num 选择器线程数
+     */
     SelectorThreadGroup(int num) {
         //num  线程数
-        sts = new SelectorThread[num];
+        selectorThreadArray = new SelectorThread[num];
         for (int i = 0; i < num; i++) {
-            sts[i] = new SelectorThread(this);
-            new Thread(sts[i]).start();
+            selectorThreadArray[i] = new SelectorThread(this);
+            new Thread(selectorThreadArray[i]).start();
         }
     }
 
+    /**
+     * 选择器绑定端口
+     *
+     * @param port 绑定端口
+     */
     public void bind(int port) {
         try {
             server = ServerSocketChannel.open();
@@ -39,28 +55,33 @@ public class SelectorThreadGroup {
             server.bind(new InetSocketAddress(port));
 
             //注册到那个selector上呢？
-//            nextSelectorV2(server);
-            nextSelectorV3(server);
+            // nextSelectorV2(server);
+            this.nextSelectorV3(server);
         } catch (IOException e) {
             e.printStackTrace();
         }
 
     }
 
+    /**
+     * 获取选择器
+     *
+     * @param c 链接/通道
+     */
     public void nextSelectorV3(Channel c) {
 
         try {
             if (c instanceof ServerSocketChannel) {
                 // listen 选择了 boss组中的一个线程后，要更新这个线程的work组
-                SelectorThread st = next();
-                st.lbq.put(c);
+                SelectorThread st = this.next();
+                st.blockingQueues.put(c);
                 st.setWorker(stg);
                 st.selector.wakeup();
             } else {
                 //在 main线程种，取到堆里的selectorThread对象
-                SelectorThread st = nextV3();
+                SelectorThread st = this.nextV3();
                 //1,通过队列传递数据 消息
-                st.lbq.add(c);
+                st.blockingQueues.add(c);
                 //2,通过打断阻塞，让对应的线程去自己在打断后完成注册selector
                 st.selector.wakeup();
             }
@@ -73,14 +94,14 @@ public class SelectorThreadGroup {
     public void nextSelectorV2(Channel c) {
         try {
             if (c instanceof ServerSocketChannel) {
-                sts[0].lbq.put(c);
-                sts[0].selector.wakeup();
+                selectorThreadArray[0].blockingQueues.put(c);
+                selectorThreadArray[0].selector.wakeup();
             } else {
                 // 在 main线程种，取到堆里的selectorThread对象
-                SelectorThread st = nextV2();
+                SelectorThread st = this.nextV2();
 
                 // 1,通过队列传递数据 消息
-                st.lbq.add(c);
+                st.blockingQueues.add(c);
                 // 2,通过打断阻塞，让对应的线程去自己在打断后完成注册selector
                 st.selector.wakeup();
 
@@ -92,9 +113,9 @@ public class SelectorThreadGroup {
 
     public void nextSelector(Channel c) {
         // 在 main线程种，取到堆里的selectorThread对象
-        SelectorThread st = next();
+        SelectorThread st = this.next();
         // 1,通过队列传递数据 消息
-        st.lbq.add(c);
+        st.blockingQueues.add(c);
         // 2,通过打断阻塞，让对应的线程去自己在打断后完成注册selector
         st.selector.wakeup();
 
@@ -102,9 +123,9 @@ public class SelectorThreadGroup {
 
     public void nextSelector2(Channel c) {
         // 在 main线程种，取到堆里的selectorThread对象
-        SelectorThread st = next();
+        SelectorThread st = this.next();
         // 1,通过队列传递数据 消息
-        st.lbq.add(c);
+        st.blockingQueues.add(c);
         // 2,通过打断阻塞，让对应的线程去自己在打断后完成注册selector
         st.selector.wakeup();
         // 重点：c有可能是 server 有可能是client
@@ -124,20 +145,20 @@ public class SelectorThreadGroup {
     // 无论 serversocket  socket  都复用这个方法
     private SelectorThread next() {
         // 轮询就会很尴尬，倾斜
-        int index = xid.incrementAndGet() % sts.length;
-        return sts[index];
+        int index = xid.incrementAndGet() % selectorThreadArray.length;
+        return selectorThreadArray[index];
     }
 
     private SelectorThread nextV2() {
         // 轮询就会很尴尬，倾斜
-        int index = xid.incrementAndGet() % (sts.length - 1);
-        return sts[index + 1];
+        int index = xid.incrementAndGet() % (selectorThreadArray.length - 1);
+        return selectorThreadArray[index + 1];
     }
 
     private SelectorThread nextV3() {
         // 动用worker的线程分配
-        int index = xid.incrementAndGet() % stg.sts.length;
-        return stg.sts[index];
+        int index = xid.incrementAndGet() % stg.selectorThreadArray.length;
+        return stg.selectorThreadArray[index];
     }
 
 }

@@ -15,7 +15,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class SocketMultiplexingThreads {
 
-    private ServerSocketChannel server = null;
     private Selector selector1 = null;
     private Selector selector2 = null;
     private Selector selector3 = null;
@@ -23,7 +22,7 @@ public class SocketMultiplexingThreads {
 
     public void initServer() {
         try {
-            server = ServerSocketChannel.open();
+            ServerSocketChannel server = ServerSocketChannel.open();
             server.configureBlocking(false);
             server.bind(new InetSocketAddress(port));
             selector1 = Selector.open();
@@ -50,32 +49,24 @@ public class SocketMultiplexingThreads {
         }
         T2.start();
         T3.start();
-
         System.out.println("服务器启动了。。。。。");
-
         try {
-            System.in.read();
+            int read = System.in.read();
         } catch (IOException e) {
             e.printStackTrace();
         }
-
     }
 }
 
 class NioThread extends Thread {
-    Selector selector = null;
+    Selector selector;
     static int selectors = 0;
-
     int id = 0;
-
     volatile static BlockingQueue<SocketChannel>[] queue;
-
     static AtomicInteger idx = new AtomicInteger();
-
     NioThread(Selector sel, int n) {
         this.selector = sel;
-        this.selectors = n;
-
+        selectors = n;
         queue = new LinkedBlockingQueue[selectors];
         for (int i = 0; i < n; i++) {
             queue[i] = new LinkedBlockingQueue<>();
@@ -87,14 +78,12 @@ class NioThread extends Thread {
         this.selector = sel;
         id = idx.getAndIncrement() % selectors;
         System.out.println("worker: " + id + " 启动");
-
     }
 
     @Override
     public void run() {
         try {
             while (true) {
-
                 while (selector.select(10) > 0) {
                     Set<SelectionKey> selectionKeys = selector.selectedKeys();
                     Iterator<SelectionKey> iter = selectionKeys.iterator();
@@ -120,7 +109,6 @@ class NioThread extends Thread {
         } catch (IOException | InterruptedException e) {
             e.printStackTrace();
         }
-
     }
 
     public void acceptHandler(SelectionKey key) {
@@ -129,9 +117,7 @@ class NioThread extends Thread {
             SocketChannel client = ssc.accept();
             client.configureBlocking(false);
             int num = idx.getAndIncrement() % selectors;
-
             queue[num].add(client);
-
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -141,7 +127,7 @@ class NioThread extends Thread {
         SocketChannel client = (SocketChannel) key.channel();
         ByteBuffer buffer = (ByteBuffer) key.attachment();
         buffer.clear();
-        int read = 0;
+        int read;
         try {
             while (true) {
                 read = client.read(buffer);
