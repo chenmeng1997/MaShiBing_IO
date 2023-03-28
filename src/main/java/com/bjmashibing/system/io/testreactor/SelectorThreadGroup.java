@@ -23,10 +23,10 @@ public class SelectorThreadGroup {
     /**
      * 选择器线程组-工作线程组
      *
-     * @param stg 选择器线程组
+     * @param worker 选择器线程组
      */
-    public void setWorker(SelectorThreadGroup stg) {
-        this.stg = stg;
+    public void setWorker(SelectorThreadGroup worker) {
+        this.stg = worker;
     }
 
     /**
@@ -35,7 +35,7 @@ public class SelectorThreadGroup {
      * @param num 选择器线程数
      */
     SelectorThreadGroup(int num) {
-        //num  线程数
+        // num 线程数
         selectorThreadArray = new SelectorThread[num];
         for (int i = 0; i < num; i++) {
             selectorThreadArray[i] = new SelectorThread(this);
@@ -54,8 +54,7 @@ public class SelectorThreadGroup {
             server.configureBlocking(false);
             server.bind(new InetSocketAddress(port));
 
-            //注册到那个selector上呢？
-            // nextSelectorV2(server);
+            // 注册到那个selector上
             this.nextSelectorV3(server);
         } catch (IOException e) {
             e.printStackTrace();
@@ -69,7 +68,6 @@ public class SelectorThreadGroup {
      * @param c 链接/通道
      */
     public void nextSelectorV3(Channel c) {
-
         try {
             if (c instanceof ServerSocketChannel) {
                 // listen 选择了 boss组中的一个线程后，要更新这个线程的work组
@@ -78,11 +76,11 @@ public class SelectorThreadGroup {
                 st.setWorker(stg);
                 st.selector.wakeup();
             } else {
-                //在 main线程种，取到堆里的selectorThread对象
+                // 在 main线程种，取到堆里的selectorThread对象
                 SelectorThread st = this.nextV3();
-                //1,通过队列传递数据 消息
+                // 1,通过队列传递数据 消息
                 st.blockingQueues.add(c);
-                //2,通过打断阻塞，让对应的线程去自己在打断后完成注册selector
+                // 2,通过打断阻塞，让对应的线程去自己在打断后完成注册selector
                 st.selector.wakeup();
             }
         } catch (InterruptedException e) {
@@ -99,7 +97,6 @@ public class SelectorThreadGroup {
             } else {
                 // 在 main线程种，取到堆里的selectorThread对象
                 SelectorThread st = this.nextV2();
-
                 // 1,通过队列传递数据 消息
                 st.blockingQueues.add(c);
                 // 2,通过打断阻塞，让对应的线程去自己在打断后完成注册selector

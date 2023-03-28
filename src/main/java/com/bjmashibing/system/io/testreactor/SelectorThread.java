@@ -49,16 +49,11 @@ public class SelectorThread extends ThreadLocal<LinkedBlockingQueue<Channel>> im
     @Override
     public void run() {
 
-        //Loop
         while (true) {
             try {
-                //1,select()
-//                System.out.println(Thread.currentThread().getName()+"   :  before select...."+ selector.keys().size());
-                int nums = selector.select();  //阻塞  wakeup()
-//                Thread.sleep(1000);  //这绝对不是解决方案，我只是给你演示
-//                System.out.println(Thread.currentThread().getName()+"   :  after select...." + selector.keys().size());
-
-                //2,处理selectkeys
+                // 阻塞  wakeup()
+                int nums = selector.select();
+                // 2,处理selectkeys
                 if (nums > 0) {
                     Set<SelectionKey> keys = selector.selectedKeys();
                     Iterator<SelectionKey> iter = keys.iterator();
@@ -76,7 +71,7 @@ public class SelectorThread extends ThreadLocal<LinkedBlockingQueue<Channel>> im
                         }
                     }
                 }
-                //3,处理一些task :  listen  client
+                // 3,处理一些task :  listen  client
                 if (!blockingQueues.isEmpty()) {   //队列是个啥东西啊？ 堆里的对象，线程的栈是独立，堆是共享的
                     //只有方法的逻辑，本地变量是线程隔离的
                     Channel c = blockingQueues.take();
@@ -98,48 +93,39 @@ public class SelectorThread extends ThreadLocal<LinkedBlockingQueue<Channel>> im
 
     }
 
-    private void readHandler(SelectionKey key) {
+    private void readHandler(SelectionKey key) throws IOException {
         System.out.println(Thread.currentThread().getName() + " read......");
         ByteBuffer buffer = (ByteBuffer) key.attachment();
         SocketChannel client = (SocketChannel) key.channel();
         buffer.clear();
         while (true) {
-            try {
-                int num = client.read(buffer);
-                if (num > 0) {
-                    // 将读到的内容翻转，然后直接写出
-                    buffer.flip();
-                    while (buffer.hasRemaining()) {
-                        client.write(buffer);
-                    }
-                    buffer.clear();
-                } else if (num == 0) {
-                    break;
-                } else {
-                    //客户端断开了
-                    System.out.println("client: " + client.getRemoteAddress() + "closed......");
-                    key.cancel();
-                    break;
+            int num = client.read(buffer);
+            if (num > 0) {
+                // 将读到的内容翻转，然后直接写出
+                buffer.flip();
+                while (buffer.hasRemaining()) {
+                    client.write(buffer);
                 }
-            } catch (IOException e) {
-                e.printStackTrace();
+                buffer.clear();
+            } else if (num == 0) {
+                break;
+            } else {
+                // 客户端断开了
+                System.out.println("client: " + client.getRemoteAddress() + "closed......");
+                key.cancel();
+                break;
             }
         }
     }
 
-    private void acceptHandler(SelectionKey key) {
+    private void acceptHandler(SelectionKey key) throws IOException {
         System.out.println(Thread.currentThread().getName() + "   acceptHandler......");
-
         ServerSocketChannel server = (ServerSocketChannel) key.channel();
-        try {
-            SocketChannel client = server.accept();
-            client.configureBlocking(false);
-            //choose a selector  and  register!!
-            threadGroup.nextSelectorV3(client);
-            // stg.nextSelectorV2(client);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        SocketChannel client = server.accept();
+        client.configureBlocking(false);
+        // choose a selector  and  register!!
+        threadGroup.nextSelectorV3(client);
+        // stg.nextSelectorV2(client);
     }
 
     /**
